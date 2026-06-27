@@ -1,58 +1,126 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Jardines de Allende Hidalgo - Sistema de Administración de Condominios
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Este proyecto es una plataforma web completa de administración condominal desarrollada para **Jardines de Allende Hidalgo**. Integra una interfaz frontend interactiva de alto rendimiento con un panel administrativo robusto impulsado por Laravel y Filament.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📋 Descripción del Proyecto
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+La aplicación está diseñada para digitalizar, automatizar y transparentar la administración interna del condominio, con especial enfoque en el cobro de cuotas fijas mensuales de mantenimiento, cargos fijos y excedentes trimestrales por lectura de agua, generación de estados de cuenta históricos y el registro de abonos bancarios.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🎯 ¿A quién está destinada?
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+1. **Administradores del Condominio**:
+   - Encargados de gestionar el censo de propietarios y roles.
+   - Responsables de la captura trimestral de lecturas de agua.
+   - Facultados para registrar cargos manuales (multas, cuotas extraordinarias) y abonos (transferencias, depósitos).
+   - Encargados de importar abonos bancarios de forma masiva desde plantillas Excel.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+2. **Condóminos (Propietarios e Inquilinos)**:
+   - Usuarios finales que requieren visualizar la salud financiera de su cuenta en tiempo real.
+   - Residentes que necesitan descargar su Estado de Cuenta Anual detallado en formato PDF.
+   - Condóminos que buscan registrarse en la plataforma y asociarse de manera directa a su unidad correspondiente.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+---
 
-## Agentic Development
+## 🚀 Funciones Principales
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+- **Landing Page Pública**: Presentación elegante del condominio con opciones directas de registro de condóminos y acceso al área del cliente.
+- **Dashboard Interactivo SPA**: Panel de control con diseño *glassmorphism* oscuro, gráficos financieros en tiempo real (Chart.js), vista agrupada por torres (Torres 1, 2 y 3) y fichas de contacto detalladas.
+- **Control de Roles Integrado (RBAC)**:
+  - **Administrador**: Control total de lectura, creación, edición y borrado de todos los recursos.
+  - **Condómino**: Acceso exclusivo a los datos y transacciones correspondientes a su propiedad vinculada (modo de solo lectura).
+- **Cálculo Automatizado de Agua**: Sistema dinámico para ingresar lecturas iniciales y finales, calcular consumo total, aplicar precio por $m^3$ excedente y registrar el cargo automático.
+- **Exportación de Reportes**:
+  - Descarga directa de Estados de Cuenta Anuales formateados en PDF directamente desde el ledger.
+  - Exportación de reportes históricos de ingresos filtrados por destino del dinero a planillas de Microsoft Excel.
+- **Importador de Archivos Excel**: Interfaz drag-and-drop para cargar lotes de transacciones históricas validando integridad de datos antes de impactar en la base de datos.
 
-```bash
-composer require laravel/boost --dev
+---
 
-php artisan boost:install
+## 🛠️ Arquitectura del Sistema
+
+La arquitectura está construida bajo los estándares del desarrollo web moderno con PHP y JS:
+
+```mermaid
+graph TD
+    Client[Cliente: Navegador Web CSS Glassmorphism / JS] -->|Peticiones HTTP / API| Laravel[Laravel 11: Motor Web y API]
+    Laravel -->|ORM Eloquent| SQLite[(Base de Datos: SQLite)]
+    Laravel -->|Control de Paneles| Filament[Filament v3: Panel Administrativo]
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+- **Frontend**: SPA basada en HTML5, CSS vanilla con diseño premium adaptable y Javascript asíncrono interactuando con la API mediante `Fetch`.
+- **Backend**: Laravel 11 como framework de servicios, sirviendo tanto las vistas Blade como las API de sincronización.
+- **Base de Datos**: SQLite, ofreciendo portabilidad y cero latencia para entornos de administración local.
+- **Panel Administrativo (Backoffice)**: Filament PHP v3 con soporte nativo para Livewire, Tailwind CSS, y Alpine.js.
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 🗄️ Diseño de la Base de Datos
 
-## Code of Conduct
+La estructura relacional consta de las siguientes tablas principales:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```
+  +-------------------+        1 : N        +-------------------+
+  |    departments    |<--------------------|   transactions    |
+  +-------------------+                     +-------------------+
+  | PK id (string)    |                     | PK id (string)    |
+  | torre             |                     | FK department_id  |
+  | tipo              |                     | fecha             |
+  | numero            |                     | tipo              |
+  | contacto_nombre   |                     | concepto          |
+  | contacto_rol      |                     | mes_correspondiente|
+  | contacto_email    |                     | destino_abono     |
+  | contacto_celular  |                     | monto             |
+  | notas             |                     +-------------------+
+  | status            |
+  +-------------------+
+            ^
+            | 1 : N
+            |
+  +-------------------+
+  |   water_readings  |
+  +-------------------+
+  | PK id (string)    |
+  | FK department_id  |
+  | periodo           |
+  | lectura_inicial   |
+  | lectura_final     |
+  | excedente         |
+  | precio_por_m3     |
+  | monto_cobrado     |
+  +-------------------+
+```
 
-## Security Vulnerabilities
+- **`users`**: Administra las credenciales del sistema, clasificando a los usuarios por `role` (`admin`, `condomino`) y asociando los condóminos a su `department_id`.
+- **`departments`**: Censo base de los 60 departamentos/locales comerciales en las 3 torres.
+- **`transactions`**: Historial ledger con cargos de mantenimiento y cobros por abonos.
+- **`water_readings`**: Bitácora trimestral de consumos de agua.
+- **`audit_logs`**: Tabla de eventos de auditoría para registrar las acciones críticas sobre las finanzas.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## 🔮 Proyecciones de Desarrollo y Escalabilidad
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Para llevar este sistema al siguiente nivel, se proponen las siguientes fases de desarrollo:
+
+### 1. Migración a Infraestructura y Servidores más Sólidos
+- **Base de Datos de Producción**: Migrar el motor local SQLite a **PostgreSQL** o **MySQL (AWS RDS / GCP Cloud SQL)** para soportar transacciones concurrentes con alta disponibilidad.
+- **Contenerización y Orquestación**: Empaquetar la aplicación en contenedores **Docker** y desplegar usando **Kubernetes** o servicios administrados como **AWS ECS / GCP Cloud Run** para autoescalado dinámico.
+- **Almacenamiento de Archivos (S3)**: Implementar almacenamiento en la nube (ej. **AWS S3**) para resguardar copias de seguridad de bases de datos y archivos PDF de estados de cuenta emitidos.
+
+### 2. Proyección y Localización Internacional
+- **Soporte Multi-Idioma (i18n)**: Implementar internacionalización para ofrecer la plataforma en múltiples idiomas (Español, Inglés, etc.).
+- **Soporte Multi-Moneda (m10n)**: Habilitar facturación y cobro en divisas extranjeras, integrando convertidores de divisas en tiempo real.
+- **Adaptación Fiscal**: Configurar perfiles impositivos y reglas fiscales parametrizables según la región o país (IVA, ISR, etc.).
+
+### 3. Desarrollo de Aplicaciones Relacionadas (Ecosistema Condominal)
+- **App Móvil para Condóminos**: Aplicación móvil (React Native / Flutter) que permita a los residentes:
+  - Recibir notificaciones push de avisos y cargos.
+  - Subir capturas de pantalla de comprobantes de pago bancarios directamente con la cámara del celular.
+  - Participar en votaciones de asambleas generales de manera remota.
+- **Módulo de Reservación de Amenidades**: Agenda interactiva para que los residentes aparten áreas comunes (terrazas, asadores, salones de eventos) aplicando cobros automatizados a sus estados de cuenta.
+- **Control de Accesos QR**: Generación de códigos QR temporales desde la app del condómino para el ingreso controlado de visitantes y proveedores en la caseta de seguridad.
+- **Integración con Medidores Inteligentes (IoT)**: Sincronización directa mediante API con medidores de agua de telemetría IoT para automatizar la captura de lecturas mensuales sin necesidad de recolección manual.
