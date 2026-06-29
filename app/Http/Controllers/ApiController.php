@@ -26,6 +26,7 @@ class ApiController extends Controller
                 'contactoCelular' => $d->contacto_celular,
                 'notas' => $d->notas,
                 'status' => $d->status,
+                'conConvenio' => (bool)$d->con_convenio,
             ];
         });
 
@@ -68,11 +69,78 @@ class ApiController extends Controller
             ];
         });
 
+        // 5. Fetch money destinations
+        $moneyDestinations = \App\Models\MoneyDestination::all()->map(function ($md) {
+            return [
+                'id' => $md->id,
+                'nombre' => $md->nombre,
+                'administracionActual' => (bool)$md->administracion_actual,
+            ];
+        });
+
+        // 6. Fetch expense groups
+        $expenseGroups = \App\Models\ExpenseGroup::all()->map(function ($eg) {
+            return [
+                'id' => $eg->id,
+                'nombre' => $eg->nombre,
+            ];
+        });
+
+        // 7. Fetch expense subgroups
+        $expenseSubgroups = \App\Models\ExpenseSubgroup::all()->map(function ($esg) {
+            return [
+                'id' => $esg->id,
+                'groupId' => $esg->expense_group_id,
+                'nombre' => $esg->nombre,
+            ];
+        });
+
+        // 8. Fetch payment methods
+        $paymentMethods = \App\Models\PaymentMethod::all()->map(function ($pm) {
+            return [
+                'id' => $pm->id,
+                'nombre' => $pm->nombre,
+            ];
+        });
+
+        // 9. Fetch expenses
+        $expenses = \App\Models\Expense::all()->map(function ($e) {
+            return [
+                'id' => $e->id,
+                'fecha' => $e->fecha,
+                'monto' => floatval($e->monto),
+                'concepto' => $e->concepto,
+                'groupId' => $e->expense_group_id,
+                'subgroupId' => $e->expense_subgroup_id,
+                'proveedor' => $e->proveedor,
+                'paymentMethodId' => $e->payment_method_id,
+                'documento' => $e->documento ? asset('storage/' . $e->documento) : null,
+            ];
+        });
+
+        // 10. Fetch notices
+        $notices = \App\Models\Notice::all()->map(function ($n) {
+            return [
+                'id' => $n->id,
+                'titulo' => $n->titulo,
+                'contenido' => $n->contenido,
+                'fechaPublicacion' => $n->fecha_publicacion ? \Carbon\Carbon::parse($n->fecha_publicacion)->format('Y-m-d') : null,
+                'fechaVigencia' => $n->fecha_vigencia ? \Carbon\Carbon::parse($n->fecha_vigencia)->format('Y-m-d') : null,
+                'activo' => (bool)$n->activo,
+            ];
+        });
+
         return response()->json([
             'ja_departments' => $departments,
             'ja_transactions' => $transactions,
             'ja_water_readings' => $waterReadings,
             'ja_audit_log' => $auditLogs,
+            'ja_money_destinations' => $moneyDestinations,
+            'ja_expense_groups' => $expenseGroups,
+            'ja_expense_subgroups' => $expenseSubgroups,
+            'ja_payment_methods' => $paymentMethods,
+            'ja_expenses' => $expenses,
+            'ja_notices' => $notices,
         ]);
     }
 
@@ -89,6 +157,7 @@ class ApiController extends Controller
                     'contacto_celular' => $d['contactoCelular'] ?? null,
                     'notas' => $d['notas'] ?? null,
                     'status' => $d['status'] ?? 'normal',
+                    'con_convenio' => $d['conConvenio'] ?? false,
                 ]);
             }
         });
@@ -187,6 +256,110 @@ class ApiController extends Controller
             }
         });
 
+        return response()->json(['status' => 'success']);
+    }
+
+    public function syncExpenses(Request $request)
+    {
+        $data = $request->input('data', []);
+        DB::transaction(function () use ($data) {
+            \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+            \App\Models\Expense::truncate();
+            $insertData = [];
+            foreach ($data as $e) {
+                $insertData[] = [
+                    'id' => $e['id'],
+                    'fecha' => $e['fecha'],
+                    'monto' => floatval($e['monto']),
+                    'concepto' => $e['concepto'],
+                    'expense_group_id' => $e['groupId'] ?? null,
+                    'expense_subgroup_id' => $e['subgroupId'] ?? null,
+                    'proveedor' => $e['proveedor'],
+                    'payment_method_id' => $e['paymentMethodId'] ?? null,
+                    'documento' => $e['documento'] ?? null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            $chunks = array_chunk($insertData, 500);
+            foreach ($chunks as $chunk) {
+                \App\Models\Expense::insert($chunk);
+            }
+            \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+        });
+        return response()->json(['status' => 'success']);
+    }
+
+    public function syncExpenseGroups(Request $request)
+    {
+        $data = $request->input('data', []);
+        DB::transaction(function () use ($data) {
+            \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+            \App\Models\ExpenseGroup::truncate();
+            foreach ($data as $g) {
+                \App\Models\ExpenseGroup::create([
+                    'id' => $g['id'],
+                    'nombre' => $g['nombre'],
+                ]);
+            }
+            \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+        });
+        return response()->json(['status' => 'success']);
+    }
+
+    public function syncExpenseSubgroups(Request $request)
+    {
+        $data = $request->input('data', []);
+        DB::transaction(function () use ($data) {
+            \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+            \App\Models\ExpenseSubgroup::truncate();
+            foreach ($data as $s) {
+                \App\Models\ExpenseSubgroup::create([
+                    'id' => $s['id'],
+                    'expense_group_id' => $s['groupId'],
+                    'nombre' => $s['nombre'],
+                ]);
+            }
+            \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+        });
+        return response()->json(['status' => 'success']);
+    }
+
+    public function syncPaymentMethods(Request $request)
+    {
+        $data = $request->input('data', []);
+        DB::transaction(function () use ($data) {
+            \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+            \App\Models\PaymentMethod::truncate();
+            foreach ($data as $pm) {
+                \App\Models\PaymentMethod::create([
+                    'id' => $pm['id'],
+                    'nombre' => $pm['nombre'],
+                ]);
+            }
+            \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+        });
+        return response()->json(['status' => 'success']);
+    }
+
+    public function syncNotices(Request $request)
+    {
+        $data = $request->input('data', []);
+        DB::transaction(function () use ($data) {
+            \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+            \App\Models\Notice::truncate();
+            foreach ($data as $n) {
+                \App\Models\Notice::create([
+                    'id' => $n['id'],
+                    'titulo' => $n['titulo'],
+                    'contenido' => $n['contenido'],
+                    'fecha_publicacion' => $n['fechaPublicacion'],
+                    'fecha_vigencia' => $n['fechaVigencia'] ?? null,
+                    'activo' => (bool)($n['activo'] ?? true),
+                ]);
+            }
+            \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+        });
         return response()->json(['status' => 'success']);
     }
 }

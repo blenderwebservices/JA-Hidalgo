@@ -23,7 +23,10 @@ let appState = {
   isCompactView: false,
   waterChartInstance: null,
   pendingDeleteTxId: null,
-  editingTxId: null
+  editingTxId: null,
+  chartExpensesMonthlyInstance: null,
+  chartExpensesGroupInstance: null,
+  expensesExcelImportData: null
 };
 
 // --- BASE DE DATOS LOCAL (API / DB SYNC) ---
@@ -51,6 +54,9 @@ const DB = {
     }
     return depts;
   },
+  getAllDepartments: () => {
+    return window.localDbState?.ja_departments || [];
+  },
   saveDepartments: (data) => {
     if (window.localDbState) {
       window.localDbState.ja_departments = data;
@@ -64,6 +70,9 @@ const DB = {
       return txs.filter(t => t.deptoId === window.currentUser.department_id);
     }
     return txs;
+  },
+  getAllTransactions: () => {
+    return window.localDbState?.ja_transactions || [];
   },
   saveTransactions: (data) => {
     if (window.localDbState) {
@@ -94,6 +103,54 @@ const DB = {
       window.localDbState.ja_audit_log = data;
     }
     apiPost('/api/sync-audit-log', data);
+  },
+  getMoneyDestinations: () => {
+    return window.localDbState?.ja_money_destinations || [];
+  },
+  getExpenses: () => {
+    return window.localDbState?.ja_expenses || [];
+  },
+  saveExpenses: (data) => {
+    if (window.localDbState) {
+      window.localDbState.ja_expenses = data;
+    }
+    apiPost('/api/sync-expenses', data);
+  },
+  getExpenseGroups: () => {
+    return window.localDbState?.ja_expense_groups || [];
+  },
+  saveExpenseGroups: (data) => {
+    if (window.localDbState) {
+      window.localDbState.ja_expense_groups = data;
+    }
+    apiPost('/api/sync-expense-groups', data);
+  },
+  getExpenseSubgroups: () => {
+    return window.localDbState?.ja_expense_subgroups || [];
+  },
+  saveExpenseSubgroups: (data) => {
+    if (window.localDbState) {
+      window.localDbState.ja_expense_subgroups = data;
+    }
+    apiPost('/api/sync-expense-subgroups', data);
+  },
+  getPaymentMethods: () => {
+    return window.localDbState?.ja_payment_methods || [];
+  },
+  savePaymentMethods: (data) => {
+    if (window.localDbState) {
+      window.localDbState.ja_payment_methods = data;
+    }
+    apiPost('/api/sync-payment-methods', data);
+  },
+  getNotices: () => {
+    return window.localDbState?.ja_notices || [];
+  },
+  saveNotices: (data) => {
+    if (window.localDbState) {
+      window.localDbState.ja_notices = data;
+    }
+    apiPost('/api/sync-notices', data);
   }
 };
 
@@ -203,6 +260,60 @@ function initDatabase() {
   }
   if (!window.localDbState || !window.localDbState.ja_audit_log) {
     DB.saveAuditLog([]);
+  }
+  if (!window.localDbState || !window.localDbState.ja_money_destinations) {
+    window.localDbState.ja_money_destinations = [
+      { id: 1, nombre: "Banorte Miguel", administracionActual: true },
+      { id: 2, nombre: "NU Miguel", administracionActual: true },
+      { id: 3, nombre: "Cuenta Carlos", administracionActual: false },
+      { id: 4, nombre: "Carlos no Reportado", administracionActual: false },
+      { id: 5, nombre: "Ajuste por Acuerdo", administracionActual: true },
+      { id: 6, nombre: "Efectivo", administracionActual: true },
+      { id: 7, nombre: "Otro", administracionActual: true }
+    ];
+  }
+  if (!window.localDbState || !window.localDbState.ja_expenses) {
+    window.localDbState.ja_expenses = [];
+  }
+  if (!window.localDbState || !window.localDbState.ja_expense_groups) {
+    window.localDbState.ja_expense_groups = [
+      { id: 1, nombre: "Mantenimiento General" },
+      { id: 2, nombre: "Servicios Públicos" },
+      { id: 3, nombre: "Administración y Operación" },
+      { id: 4, nombre: "Seguridad y Vigilancia" }
+    ];
+  }
+  if (!window.localDbState || !window.localDbState.ja_expense_subgroups) {
+    window.localDbState.ja_expense_subgroups = [
+      { id: 1, groupId: 1, nombre: "Pintura y Reparaciones" },
+      { id: 2, groupId: 1, nombre: "Jardinería y Limpieza" },
+      { id: 3, groupId: 2, nombre: "Luz de Áreas Comunes" },
+      { id: 4, groupId: 2, nombre: "Agua Caseta y Riego" },
+      { id: 5, groupId: 3, nombre: "Honorarios de Administración" },
+      { id: 6, groupId: 3, nombre: "Papelería e Impresiones" },
+      { id: 7, groupId: 4, nombre: "Guardias de Caseta" },
+      { id: 8, groupId: 4, nombre: "Reparación de Portón Eléctrico" }
+    ];
+  }
+  if (!window.localDbState || !window.localDbState.ja_payment_methods) {
+    window.localDbState.ja_payment_methods = [
+      { id: 1, nombre: "Transferencia Bancaria" },
+      { id: 2, nombre: "Efectivo" },
+      { id: 3, nombre: "Cheque" },
+      { id: 4, nombre: "Tarjeta de Crédito / Débito" }
+    ];
+  }
+  if (!window.localDbState || !window.localDbState.ja_notices) {
+    window.localDbState.ja_notices = [
+      {
+        id: 1,
+        titulo: "¡Bienvenidos al Nuevo Sistema de Control Financiero!",
+        contenido: "Estimados condóminos, les damos la bienvenida al portal digital de Jardines de Allende Hidalgo. A partir de hoy podrán consultar estados de cuenta resumidos, consumos de agua e informes de gastos directamente desde aquí de forma transparente.",
+        fechaPublicacion: "2026-06-28",
+        fechaVigencia: null,
+        activo: true
+      }
+    ];
   }
 
   // 3. Generar cargos fijos automáticos hasta la fecha actual
@@ -397,6 +508,16 @@ function navigateTo(viewId) {
       viewSubtitle.textContent = "Mantenimiento del sistema y bitácora de auditoría";
       renderConfigView();
       break;
+    case "resumen-saldos":
+      viewTitle.textContent = "Vista Resumida de Saldos";
+      viewSubtitle.textContent = "Saldos generales de todas las propiedades del condominio";
+      renderResumenSaldosView();
+      break;
+    case "gastos":
+      viewTitle.textContent = "Gastos (Egresos)";
+      viewSubtitle.textContent = "Control de egresos, reportes mensuales y categorías";
+      renderGastosView();
+      break;
   }
 
   // Cerrar sidebar móvil si está abierto
@@ -470,16 +591,36 @@ function formatMonthES(monthStr) {
 
 // --- VISTA: DASHBOARD ---
 function renderDashboard() {
+  // Render Notices Board
+  renderDashboardNotices();
+
   const transactions = DB.getTransactions();
   const depts = DB.getDepartments();
+  const destinations = DB.getMoneyDestinations();
+
+  // Crear un Set de nombres de cuentas que pertenecen a la administración actual
+  const activeDestNames = new Set(
+    destinations.filter(d => d.administracionActual).map(d => d.nombre)
+  );
 
   // Calcular métricas
   let totalCargado = 0;
   let totalCobrado = 0;
+  let totalCobradoActual = 0;
+  let totalCobradoPasado = 0;
   
   transactions.forEach(t => {
-    if (t.tipo === "cargo") totalCargado += t.monto;
-    else if (t.tipo === "abono") totalCobrado += t.monto;
+    if (t.tipo === "cargo") {
+      totalCargado += t.monto;
+    } else if (t.tipo === "abono") {
+      totalCobrado += t.monto;
+      const isActual = activeDestNames.has(t.destinoAbono);
+      if (isActual) {
+        totalCobradoActual += t.monto;
+      } else {
+        totalCobradoPasado += t.monto;
+      }
+    }
   });
 
   const deudaPendiente = totalCargado - totalCobrado;
@@ -488,6 +629,12 @@ function renderDashboard() {
   // Actualizar UI
   document.getElementById("dashboard-total-charged").textContent = formatCurrency(totalCargado);
   document.getElementById("dashboard-total-collected").textContent = formatCurrency(totalCobrado);
+  
+  const elActual = document.getElementById("dashboard-collected-actual");
+  const elPast = document.getElementById("dashboard-collected-past");
+  if (elActual) elActual.textContent = formatCurrency(totalCobradoActual);
+  if (elPast) elPast.textContent = formatCurrency(totalCobradoPasado);
+
   document.getElementById("dashboard-total-debt").textContent = formatCurrency(Math.max(0, deudaPendiente));
   document.getElementById("dashboard-collection-rate").textContent = `${porcentajeCobranza.toFixed(1)}%`;
 
@@ -537,6 +684,67 @@ function renderDashboard() {
   // Renderizar Gráfico
   renderFinancialChart(transactions);
   renderTowerSummaries();
+
+  // Renderizar últimos 5 abonos por destino de administración actual
+  const containerRecentAbonos = document.getElementById("container-recent-abonos");
+  if (containerRecentAbonos) {
+    containerRecentAbonos.innerHTML = "";
+    
+    // Obtener abonos
+    const abonos = transactions.filter(t => t.tipo === "abono");
+    
+    // Agrupar por destino
+    const activeDestinations = destinations.filter(d => d.administracionActual);
+    
+    if (activeDestinations.length === 0) {
+      containerRecentAbonos.innerHTML = `<p class="text-muted text-center span-3" style="grid-column: 1 / -1; padding: 20px;">No hay cuentas de administración actual configuradas.</p>`;
+    } else {
+      activeDestinations.forEach(dest => {
+        // Filtrar y ordenar los últimos 5 para esta cuenta
+        const destAbonos = abonos
+          .filter(t => t.destinoAbono === dest.nombre)
+          .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+          .slice(0, 5);
+          
+        const box = document.createElement("div");
+        box.className = "recent-abonos-box";
+        box.style = "background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 12px; padding: 15px;";
+        
+        let rowsHtml = "";
+        if (destAbonos.length === 0) {
+          rowsHtml = `<tr><td colspan="3" style="text-align: center; color: rgba(255,255,255,0.4); font-size: 0.8rem; padding: 10px 0;">Sin abonos registrados</td></tr>`;
+        } else {
+          destAbonos.forEach(a => {
+            rowsHtml += `
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="font-size: 0.8rem; padding: 8px 0; color: rgba(255,255,255,0.6);">${a.fecha}</td>
+                <td style="font-size: 0.8rem; padding: 8px 0; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${a.concepto}">${a.concepto}</td>
+                <td style="font-size: 0.8rem; padding: 8px 0; text-align: right; font-weight: bold; color: var(--emerald-primary);">${formatCurrency(a.monto)}</td>
+              </tr>
+            `;
+          });
+        }
+        
+        box.innerHTML = `
+          <h4 style="margin: 0 0 10px 0; color: var(--gold-primary); font-size: 0.95rem; border-bottom: 1px solid var(--border-glass); padding-bottom: 6px;">${dest.nombre}</h4>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left; color: rgba(255,255,255,0.4); font-size: 0.75rem;">
+                <th style="padding-bottom: 4px; font-weight: 500;">Fecha</th>
+                <th style="padding-bottom: 4px; font-weight: 500;">Concepto</th>
+                <th style="padding-bottom: 4px; font-weight: 500; text-align: right;">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        `;
+        containerRecentAbonos.appendChild(box);
+      });
+    }
+  }
+
   lucide.createIcons();
 }
 
@@ -794,6 +1002,11 @@ function renderDeptoDetailView() {
   document.getElementById("depto-detail-phone").textContent = dept.contactoCelular || "No registrado";
   document.getElementById("depto-detail-notes").textContent = dept.notas || dept.notes || "Sin notas adicionales registradas.";
   
+  const convenioRow = document.getElementById("depto-detail-convenio-row");
+  if (convenioRow) {
+    convenioRow.style.display = dept.conConvenio ? "flex" : "none";
+  }
+
   // Establecer valor del selector de estado
   document.getElementById("depto-status-select").value = dept.status || "normal";
 
@@ -898,6 +1111,7 @@ function renderDeptoDetailView() {
   document.getElementById("edit-contact-email").value = dept.contactoEmail;
   document.getElementById("edit-contact-phone").value = dept.contactoCelular;
   document.getElementById("edit-contact-notes").value = dept.notas || dept.notes || "";
+  document.getElementById("edit-contact-convenio").checked = !!dept.conConvenio;
 
   lucide.createIcons();
 }
@@ -1727,11 +1941,25 @@ function initEventListeners() {
     const idx = depts.findIndex(d => d.id === deptoId);
 
     if (idx >= 0) {
-      depts[idx].contactoNombre = document.getElementById("edit-contact-name").value.trim();
-      depts[idx].contactoRol = document.getElementById("edit-contact-role").value;
-      depts[idx].contactoEmail = document.getElementById("edit-contact-email").value.trim();
-      depts[idx].contactoCelular = document.getElementById("edit-contact-phone").value.trim();
-      depts[idx].notes = document.getElementById("edit-contact-notes").value.trim();
+      const name = document.getElementById("edit-contact-name").value.trim();
+      const role = document.getElementById("edit-contact-role").value;
+      const email = document.getElementById("edit-contact-email").value.trim();
+      const phone = document.getElementById("edit-contact-phone").value.trim();
+      const notes = document.getElementById("edit-contact-notes").value.trim();
+      const conConvenio = document.getElementById("edit-contact-convenio").checked;
+
+      if (conConvenio && !notes) {
+        showToast("Error de Validación", "Las notas no pueden estar vacías si el departamento está con convenio.", "error");
+        return;
+      }
+
+      depts[idx].contactoNombre = name;
+      depts[idx].contactoRol = role;
+      depts[idx].contactoEmail = email;
+      depts[idx].contactoCelular = phone;
+      depts[idx].notas = notes;
+      depts[idx].notes = notes;
+      depts[idx].conConvenio = conConvenio;
 
       DB.saveDepartments(depts);
       showToast("Ficha Actualizada", `Los datos de contacto de ${deptoId} se guardaron.`, "success");
@@ -2075,6 +2303,24 @@ function initEventListeners() {
       }
     });
   }
+
+  // Listeners para Vista Resumida de Saldos
+  const chkFilterDeudasConvenio = document.getElementById("chk-filter-deudas-convenio");
+  if (chkFilterDeudasConvenio) {
+    chkFilterDeudasConvenio.addEventListener("change", () => {
+      renderResumenSaldosView();
+    });
+  }
+
+  const btnPrintResumen = document.getElementById("btn-print-resumen");
+  if (btnPrintResumen) {
+    btnPrintResumen.addEventListener("click", () => {
+      window.print();
+    });
+  }
+
+  // Cargar listeners de gastos
+  initExpensesEventListeners();
 }
 
 // --- CREAR Y DESCARGAR PLANTILLA EXCEL ---
@@ -3182,6 +3428,898 @@ function applyCondominoRestrictions() {
     `;
     document.head.appendChild(style);
   }
+}
+
+function renderResumenSaldosView() {
+  const depts = DB.getAllDepartments();
+  const transactions = DB.getAllTransactions();
+  const filterOnlyDeudas = document.getElementById("chk-filter-deudas-convenio")?.checked || false;
+
+  // Actualizar fecha
+  const resumenFechaEl = document.getElementById("resumen-saldos-fecha");
+  if (resumenFechaEl) {
+    const today = new Date();
+    resumenFechaEl.textContent = today.toLocaleDateString('es-MX', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  }
+
+  // Obtener tbody
+  const tbody = document.querySelector("#table-resumen-saldos tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  // Calcular saldos y mapear
+  let filteredDepts = depts.map(d => {
+    const saldo = calculateDeptoBalance(d.id, transactions);
+    return {
+      ...d,
+      saldo: saldo
+    };
+  });
+
+  if (filterOnlyDeudas) {
+    // Mostrar solo los que tengan adeudo (saldo < 0) y que NO estén con convenio (conConvenio === false)
+    filteredDepts = filteredDepts.filter(d => d.saldo < 0 && !d.conConvenio);
+  }
+
+  // Ordenar por ID de propiedad (torre y luego número)
+  filteredDepts.sort((a, b) => {
+    return a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' });
+  });
+
+  if (filteredDepts.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted" style="padding: 20px;">No hay propiedades registradas o que cumplan con el filtro.</td></tr>`;
+    return;
+  }
+
+  filteredDepts.forEach(d => {
+    const saldoStr = d.saldo < 0 ? `-${formatCurrency(Math.abs(d.saldo))}` : formatCurrency(d.saldo);
+    const saldoColor = d.saldo < 0 ? "text-red font-bold" : "text-emerald font-bold";
+    const convenioBadge = d.conConvenio 
+      ? `<span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); font-size: 0.7rem; padding: 2px 6px; text-transform: uppercase;">Con Convenio</span>`
+      : `<span class="badge" style="background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); font-size: 0.7rem; padding: 2px 6px; text-transform: uppercase;">Sin Convenio</span>`;
+      
+    const tr = document.createElement("tr");
+    tr.style.borderBottom = "1px solid var(--border-glass)";
+    tr.innerHTML = `
+      <td style="padding: 12px;"><span class="text-gold font-bold">${d.id}</span></td>
+      <td style="padding: 12px; color: #fff;">${d.contactoNombre || "Sin Registrar"}</td>
+      <td style="padding: 12px; text-transform: capitalize; color: rgba(255,255,255,0.7);">${d.contactoRol}</td>
+      <td style="padding: 12px;">${convenioBadge}</td>
+      <td style="padding: 12px; text-align: right;" class="${saldoColor}">${saldoStr}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderGastosView() {
+  const expenses = DB.getExpenses();
+  const groups = DB.getExpenseGroups();
+  const subgroups = DB.getExpenseSubgroups();
+  const transactions = DB.getAllTransactions();
+  const destinations = DB.getMoneyDestinations();
+
+  // 1. Calcular KPIs
+  let totalExpenses = 0;
+  const groupTotals = {};
+  
+  expenses.forEach(e => {
+    totalExpenses += e.monto;
+    const groupName = groups.find(g => g.id === e.groupId)?.nombre || "Sin Grupo";
+    groupTotals[groupName] = (groupTotals[groupName] || 0) + e.monto;
+  });
+
+  // KPI 1: Total Gastos
+  const totalAmountEl = document.getElementById("expenses-total-amount");
+  if (totalAmountEl) {
+    totalAmountEl.textContent = formatCurrency(totalExpenses);
+  }
+
+  // KPI 2: Balance Adm. Actual
+  const activeDestNames = new Set(
+    destinations.filter(d => d.administracionActual).map(d => d.nombre)
+  );
+  let totalCobradoActual = 0;
+  transactions.forEach(t => {
+    if (t.tipo === "abono" && activeDestNames.has(t.destinoAbono)) {
+      totalCobradoActual += t.monto;
+    }
+  });
+
+  const netBalance = totalCobradoActual - totalExpenses;
+  const netBalanceEl = document.getElementById("expenses-net-balance");
+  if (netBalanceEl) {
+    netBalanceEl.textContent = netBalance < 0 ? `-${formatCurrency(Math.abs(netBalance))}` : formatCurrency(netBalance);
+    netBalanceEl.className = "metric-value " + (netBalance < 0 ? "text-red" : "text-emerald");
+  }
+
+  // KPI 3: Categoría Mayor Gasto
+  let topCategory = "-";
+  let maxAmount = 0;
+  Object.keys(groupTotals).forEach(name => {
+    if (groupTotals[name] > maxAmount) {
+      maxAmount = groupTotals[name];
+      topCategory = name;
+    }
+  });
+  const topCategoryEl = document.getElementById("expenses-top-category");
+  if (topCategoryEl) {
+    topCategoryEl.textContent = topCategory;
+  }
+
+  // 2. Render Charts
+  renderExpensesCharts(expenses, groups);
+
+  // 3. Render Breakdown Table
+  const tbodyBreakdown = document.querySelector("#table-expenses-breakdown tbody");
+  if (tbodyBreakdown) {
+    tbodyBreakdown.innerHTML = "";
+    
+    const hierarchy = {};
+    expenses.forEach(e => {
+      const gName = groups.find(g => g.id === e.groupId)?.nombre || "Sin Grupo";
+      const sName = subgroups.find(s => s.id === e.subgroupId)?.nombre || "Sin Subgrupo";
+      
+      if (!hierarchy[gName]) hierarchy[gName] = { total: 0, subgroups: {} };
+      hierarchy[gName].total += e.monto;
+      hierarchy[gName].subgroups[sName] = (hierarchy[gName].subgroups[sName] || 0) + e.monto;
+    });
+
+    const sortedGroups = Object.keys(hierarchy).sort((a,b) => hierarchy[b].total - hierarchy[a].total);
+
+    if (sortedGroups.length === 0) {
+      tbodyBreakdown.innerHTML = `<tr><td colspan="4" class="text-center text-muted" style="padding: 15px;">No hay egresos registrados.</td></tr>`;
+    } else {
+      sortedGroups.forEach(gName => {
+        const gTotal = hierarchy[gName].total;
+        const gPct = totalExpenses > 0 ? ((gTotal / totalExpenses) * 100).toFixed(1) : "0.0";
+        
+        const trGroup = document.createElement("tr");
+        trGroup.style.background = "rgba(255, 255, 255, 0.03)";
+        trGroup.style.fontWeight = "bold";
+        trGroup.innerHTML = `
+          <td style="padding: 10px; color: var(--gold-primary);"><i data-lucide="folder" class="inline-icon" style="margin-right: 5px;"></i> ${gName}</td>
+          <td style="padding: 10px; color: rgba(255,255,255,0.4);">Todos</td>
+          <td style="padding: 10px; text-align: right; color: var(--gold-primary);">${formatCurrency(gTotal)}</td>
+          <td style="padding: 10px; text-align: right; color: var(--gold-primary);">${gPct}%</td>
+        `;
+        tbodyBreakdown.appendChild(trGroup);
+
+        const sNames = Object.keys(hierarchy[gName].subgroups).sort((a,b) => hierarchy[gName].subgroups[b] - hierarchy[gName].subgroups[a]);
+        sNames.forEach(sName => {
+          const sTotal = hierarchy[gName].subgroups[sName];
+          const sPct = totalExpenses > 0 ? ((sTotal / totalExpenses) * 100).toFixed(1) : "0.0";
+
+          const trSub = document.createElement("tr");
+          trSub.style.borderBottom = "1px solid var(--border-glass)";
+          trSub.innerHTML = `
+            <td style="padding: 8px 10px 8px 30px; color: rgba(255,255,255,0.75); font-size: 0.85rem;">${gName}</td>
+            <td style="padding: 8px 10px; color: rgba(255,255,255,0.75); font-size: 0.85rem;">${sName}</td>
+            <td style="padding: 8px 10px; text-align: right; color: rgba(255,255,255,0.75); font-size: 0.85rem;">${formatCurrency(sTotal)}</td>
+            <td style="padding: 8px 10px; text-align: right; color: rgba(255,255,255,0.5); font-size: 0.8rem;">${sPct}%</td>
+          `;
+          tbodyBreakdown.appendChild(trSub);
+        });
+      });
+    }
+  }
+
+  // 4. Populate filters
+  populateExpensesListFilters(groups);
+
+  // 5. Hide elements for condomino
+  if (window.currentUser && window.currentUser.role === 'condomino') {
+    document.querySelectorAll(".admin-only").forEach(el => el.style.display = "none");
+  }
+
+  lucide.createIcons();
+}
+
+function populateExpensesListFilters(groups) {
+  const filterGroup = document.getElementById("filter-expenses-group");
+  const filterMethod = document.getElementById("filter-expenses-method");
+
+  if (filterGroup && filterGroup.options.length <= 1) {
+    groups.forEach(g => {
+      const opt = document.createElement("option");
+      opt.value = g.id;
+      opt.textContent = g.nombre;
+      filterGroup.appendChild(opt);
+    });
+  }
+
+  if (filterMethod && filterMethod.options.length <= 1) {
+    const methods = DB.getPaymentMethods();
+    methods.forEach(pm => {
+      const opt = document.createElement("option");
+      opt.value = pm.id;
+      opt.textContent = pm.nombre;
+      filterMethod.appendChild(opt);
+    });
+  }
+}
+
+function renderExpensesTableList() {
+  const expenses = DB.getExpenses();
+  const groups = DB.getExpenseGroups();
+  const subgroups = DB.getExpenseSubgroups();
+  const methods = DB.getPaymentMethods();
+
+  const searchQuery = document.getElementById("search-expenses")?.value.toLowerCase().trim() || "";
+  const filterGroupId = parseInt(document.getElementById("filter-expenses-group")?.value) || 0;
+  const filterMethodId = parseInt(document.getElementById("filter-expenses-method")?.value) || 0;
+
+  const tbody = document.querySelector("#table-expenses-list tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  let filtered = expenses;
+
+  if (searchQuery) {
+    filtered = filtered.filter(e => 
+      e.concepto.toLowerCase().includes(searchQuery) || 
+      e.proveedor.toLowerCase().includes(searchQuery)
+    );
+  }
+
+  if (filterGroupId) {
+    filtered = filtered.filter(e => e.groupId === filterGroupId);
+  }
+
+  if (filterMethodId) {
+    filtered = filtered.filter(e => e.paymentMethodId === filterMethodId);
+  }
+
+  filtered.sort((a,b) => b.fecha.localeCompare(a.fecha));
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted" style="padding: 20px;">No hay gastos que coincidan con los filtros.</td></tr>`;
+    return;
+  }
+
+  filtered.forEach(e => {
+    const gName = groups.find(g => g.id === e.groupId)?.nombre || "Sin Grupo";
+    const sName = subgroups.find(s => s.id === e.subgroupId)?.nombre || "Sin Subgrupo";
+    const pmName = methods.find(pm => pm.id === e.paymentMethodId)?.nombre || "Sin Forma";
+
+    const tr = document.createElement("tr");
+    tr.style.borderBottom = "1px solid var(--border-glass)";
+    
+    let supportCell = "";
+    if (e.documento) {
+      if (e.documento.startsWith("http") || e.documento.includes("/")) {
+        supportCell = `<a href="${e.documento}" target="_blank" class="text-gold" style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="file-text" style="width: 14px; height: 14px;"></i> Soporte</a>`;
+      } else {
+        supportCell = `<span class="text-muted" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="file" style="width: 14px; height: 14px;"></i> ${e.documento}</span>`;
+      }
+    } else {
+      supportCell = `<span class="text-muted" style="font-size: 0.75rem;">Sin soporte</span>`;
+    }
+
+    tr.innerHTML = `
+      <td style="padding: 10px; font-size: 0.85rem;"><span class="text-muted">${e.id}</span></td>
+      <td style="padding: 10px; color: #fff; font-size: 0.85rem; white-space: nowrap;">${e.fecha}</td>
+      <td style="padding: 10px; color: #fff; font-weight: 500; font-size: 0.85rem;">${e.concepto}</td>
+      <td style="padding: 10px; font-size: 0.85rem; color: rgba(255,255,255,0.75);"><span class="badge" style="background: rgba(255,255,255,0.05);">${gName} / ${sName}</span></td>
+      <td style="padding: 10px; color: #fff; font-size: 0.85rem;">${e.proveedor}</td>
+      <td style="padding: 10px; color: rgba(255,255,255,0.7); font-size: 0.85rem;">${pmName}</td>
+      <td style="padding: 10px; text-align: right; font-weight: 600;" class="text-red">${formatCurrency(e.monto)}</td>
+      <td style="padding: 10px;" class="no-print">${supportCell}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  lucide.createIcons();
+}
+
+function renderExpensesCharts(expenses, groups) {
+  const ctxMonthly = document.getElementById("chartExpensesMonthly")?.getContext("2d");
+  if (ctxMonthly) {
+    if (appState.chartExpensesMonthlyInstance) {
+      appState.chartExpensesMonthlyInstance.destroy();
+    }
+
+    const dataset = {};
+    expenses.forEach(e => {
+      const year = e.fecha.substring(0, 4);
+      const month = e.fecha.substring(5, 7);
+      
+      if (!dataset[year]) {
+        dataset[year] = Array(12).fill(0);
+      }
+      const mIdx = parseInt(month) - 1;
+      if (mIdx >= 0 && mIdx < 12) {
+        dataset[year][mIdx] += e.monto;
+      }
+    });
+
+    const years = Object.keys(dataset).sort();
+    
+    const colors = [
+      { border: "#e11d48", bg: "rgba(225, 29, 72, 0.3)" },
+      { border: "#d97706", bg: "rgba(217, 119, 6, 0.3)" },
+      { border: "#2563eb", bg: "rgba(37, 99, 235, 0.3)" },
+      { border: "#059669", bg: "rgba(5, 150, 105, 0.3)" }
+    ];
+
+    const chartDatasets = years.map((yr, idx) => {
+      const color = colors[idx % colors.length];
+      return {
+        label: yr,
+        data: dataset[yr],
+        borderColor: color.border,
+        backgroundColor: color.bg,
+        borderWidth: 2,
+        borderRadius: 4
+      };
+    });
+
+    appState.chartExpensesMonthlyInstance = new Chart(ctxMonthly, {
+      type: 'bar',
+      data: {
+        labels: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"],
+        datasets: chartDatasets.length > 0 ? chartDatasets : [{ label: "Sin Datos", data: Array(12).fill(0), borderColor: "rgba(255,255,255,0.1)", backgroundColor: "rgba(255,255,255,0.05)" }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: "rgba(255,255,255,0.7)", font: { family: "Outfit" } } }
+        },
+        scales: {
+          y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "rgba(255,255,255,0.5)", font: { family: "Outfit" } } },
+          x: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "rgba(255,255,255,0.5)", font: { family: "Outfit" } } }
+        }
+      }
+    });
+  }
+
+  const ctxGroup = document.getElementById("chartExpensesGroup")?.getContext("2d");
+  if (ctxGroup) {
+    if (appState.chartExpensesGroupInstance) {
+      appState.chartExpensesGroupInstance.destroy();
+    }
+
+    const groupSums = {};
+    expenses.forEach(e => {
+      const gName = groups.find(g => g.id === e.groupId)?.nombre || "Sin Grupo";
+      groupSums[gName] = (groupSums[gName] || 0) + e.monto;
+    });
+
+    const labels = Object.keys(groupSums);
+    const data = Object.values(groupSums);
+
+    const colors = [
+      "#f43f5e", "#3b82f6", "#eab308", "#10b981", "#a855f7", "#f97316"
+    ];
+
+    appState.chartExpensesGroupInstance = new Chart(ctxGroup, {
+      type: 'doughnut',
+      data: {
+        labels: labels.length > 0 ? labels : ["Sin Egresos"],
+        datasets: [{
+          data: data.length > 0 ? data : [1],
+          backgroundColor: data.length > 0 ? colors.slice(0, labels.length) : ["rgba(255,255,255,0.1)"],
+          borderColor: "rgba(0, 0, 0, 0.4)",
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+}
+
+function initExpensesEventListeners() {
+  const btnReports = document.getElementById("btn-gastos-tab-reports");
+  const btnList = document.getElementById("btn-gastos-tab-list");
+  const subviewReports = document.getElementById("gastos-subview-reports");
+  const subviewList = document.getElementById("gastos-subview-list");
+
+  if (btnReports && btnList && subviewReports && subviewList) {
+    btnReports.addEventListener("click", () => {
+      btnReports.classList.add("active");
+      btnList.classList.remove("active");
+      subviewReports.style.display = "grid";
+      subviewList.style.display = "none";
+    });
+    btnList.addEventListener("click", () => {
+      btnList.classList.add("active");
+      btnReports.classList.remove("active");
+      subviewList.style.display = "block";
+      subviewReports.style.display = "none";
+      renderExpensesTableList();
+    });
+  }
+
+  const modalAdd = document.getElementById("modal-add-expense");
+  const btnOpenAdd = document.getElementById("btn-open-add-gasto");
+  const btnCloseAddHeader = document.getElementById("btn-close-add-expense-modal");
+  const btnCloseAddCancel = document.getElementById("btn-cancel-add-expense");
+
+  if (btnOpenAdd && modalAdd) {
+    btnOpenAdd.addEventListener("click", () => {
+      modalAdd.classList.add("open");
+      populateAddExpenseModalSelects();
+    });
+  }
+  [btnCloseAddHeader, btnCloseAddCancel].forEach(b => {
+    b?.addEventListener("click", () => {
+      modalAdd?.classList.remove("open");
+      document.getElementById("form-add-expense")?.reset();
+    });
+  });
+
+  const modalImport = document.getElementById("modal-import-expenses");
+  const btnOpenImport = document.getElementById("btn-open-import-gastos");
+  const btnCloseImportHeader = document.getElementById("btn-close-import-expenses-modal");
+  const btnCloseImportCancel = document.getElementById("btn-cancel-import-expenses");
+
+  if (btnOpenImport && modalImport) {
+    btnOpenImport.addEventListener("click", () => {
+      modalImport.classList.add("open");
+    });
+  }
+  [btnCloseImportHeader, btnCloseImportCancel].forEach(b => {
+    b?.addEventListener("click", () => {
+      modalImport?.classList.remove("open");
+      resetExpensesImportState();
+    });
+  });
+
+  const selectGroup = document.getElementById("add-expense-group");
+  const selectSubgroup = document.getElementById("add-expense-subgroup");
+  if (selectGroup && selectSubgroup) {
+    selectGroup.addEventListener("change", (e) => {
+      const groupId = parseInt(e.target.value);
+      selectSubgroup.innerHTML = '<option value="">Selecciona subgrupo</option>';
+      if (!groupId) return;
+      const subgroups = DB.getExpenseSubgroups().filter(s => s.groupId === groupId);
+      subgroups.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s.id;
+        opt.textContent = s.nombre;
+        selectSubgroup.appendChild(opt);
+      });
+    });
+  }
+
+  const formAddExpense = document.getElementById("form-add-expense");
+  if (formAddExpense) {
+    formAddExpense.addEventListener("submit", (e) => {
+      e.preventDefault();
+      
+      const concept = document.getElementById("add-expense-concept").value;
+      const date = document.getElementById("add-expense-date").value;
+      const amount = parseFloat(document.getElementById("add-expense-amount").value);
+      const groupId = parseInt(document.getElementById("add-expense-group").value);
+      const subgroupId = parseInt(document.getElementById("add-expense-subgroup").value);
+      const provider = document.getElementById("add-expense-provider").value;
+      const paymentMethodId = parseInt(document.getElementById("add-expense-payment-method").value);
+      const docVal = document.getElementById("add-expense-doc").value;
+
+      const newExpense = {
+        id: 'EXP-' + String(Date.now()),
+        fecha: date,
+        monto: amount,
+        concepto: concept,
+        groupId: groupId,
+        subgroupId: subgroupId,
+        proveedor: provider,
+        paymentMethodId: paymentMethodId,
+        documento: docVal ? docVal : null
+      };
+
+      const expenses = DB.getExpenses();
+      expenses.push(newExpense);
+      DB.saveExpenses(expenses);
+
+      logAuditEvent("CREAR_GASTO", "Expense", newExpense.id, `Gasto manual registrado: ${concept} por $${amount}`);
+
+      showToast("Gasto Registrado", "El egreso se guardó correctamente.", "success");
+      modalAdd.classList.remove("open");
+      formAddExpense.reset();
+
+      renderGastosView();
+    });
+  }
+
+  const searchInput = document.getElementById("search-expenses");
+  const filterGroup = document.getElementById("filter-expenses-group");
+  const filterMethod = document.getElementById("filter-expenses-method");
+
+  [searchInput, filterGroup, filterMethod].forEach(el => {
+    el?.addEventListener("input", () => {
+      renderExpensesTableList();
+    });
+    el?.addEventListener("change", () => {
+      renderExpensesTableList();
+    });
+  });
+
+  const dropzone = document.getElementById("expenses-dropzone");
+  const fileInput = document.getElementById("expenses-excel-input");
+
+  if (dropzone && fileInput) {
+    dropzone.addEventListener("click", () => fileInput.click());
+    
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = "var(--gold-primary)";
+    });
+
+    dropzone.addEventListener("dragleave", () => {
+      dropzone.style.borderColor = "var(--border-glass)";
+    });
+
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = "var(--border-glass)";
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleExpensesExcelFile(files[0]);
+      }
+    });
+
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        handleExpensesExcelFile(e.target.files[0]);
+      }
+    });
+  }
+
+  const btnDownloadTemplate = document.getElementById("btn-download-expenses-template");
+  if (btnDownloadTemplate) {
+    btnDownloadTemplate.addEventListener("click", () => {
+      downloadExpensesExcelTemplate();
+    });
+  }
+
+  const btnConfirmImport = document.getElementById("btn-confirm-import-expenses");
+  if (btnConfirmImport) {
+    btnConfirmImport.addEventListener("click", () => {
+      applyImportedExpensesData();
+    });
+  }
+}
+
+function populateAddExpenseModalSelects() {
+  const selectGroup = document.getElementById("add-expense-group");
+  const selectMethod = document.getElementById("add-expense-payment-method");
+  
+  if (selectGroup) {
+    selectGroup.innerHTML = '<option value="">Selecciona grupo</option>';
+    DB.getExpenseGroups().forEach(g => {
+      const opt = document.createElement("option");
+      opt.value = g.id;
+      opt.textContent = g.nombre;
+      selectGroup.appendChild(opt);
+    });
+  }
+
+  if (selectMethod) {
+    selectMethod.innerHTML = '<option value="">Selecciona forma</option>';
+    DB.getPaymentMethods().forEach(pm => {
+      const opt = document.createElement("option");
+      opt.value = pm.id;
+      opt.textContent = pm.nombre;
+      selectMethod.appendChild(opt);
+    });
+  }
+}
+
+function downloadExpensesExcelTemplate() {
+  const wb = XLSX.utils.book_new();
+
+  const instructionsData = [
+    ["JARDINES DE ALLENDE HIDALGO - PLANTILLA DE IMPORTACIÓN DE EGRESOS"],
+    [""],
+    ["INSTRUCCIONES IMPORTANTES:"],
+    ["1. Llena los datos en la hoja 'Egresos' a partir de la fila 2."],
+    ["2. No alteres las cabeceras ni el orden de las columnas."],
+    ["3. El formato de la fecha debe ser AAAA-MM-DD (ej: 2026-06-25) o tipo Fecha en Excel."],
+    ["4. El monto debe ser numérico positivo."],
+    ["5. Las columnas 'Grupo', 'Subgrupo' y 'Forma de Pago' son obligatorias. Si introduces nombres nuevos,"],
+    ["   se crearán automáticamente en el sistema al aplicar la importación."],
+    [""],
+    ["EJEMPLO DE REGISTRO EN HOJA 'Egresos':"],
+    ["Fecha", "Monto", "Concepto", "Grupo", "Subgrupo", "Proveedor", "Forma de Pago"],
+    ["2026-06-01", 1500.00, "Servicio de Limpieza", "Mantenimiento General", "Jardinería y Limpieza", "Limpieza SA", "Transferencia Bancaria"],
+    ["2026-06-02", 450.50, "Papelería Caseta", "Administración y Operación", "Papelería e Impresiones", "Ofix SA", "Efectivo"]
+  ];
+
+  const wsInst = XLSX.utils.aoa_to_sheet(instructionsData);
+  XLSX.utils.book_append_sheet(wb, wsInst, "Instrucciones");
+
+  const headers = [
+    ["Fecha", "Monto", "Concepto", "Grupo", "Subgrupo", "Proveedor", "Forma de Pago"]
+  ];
+  const wsEgresos = XLSX.utils.aoa_to_sheet(headers);
+  
+  wsEgresos['!cols'] = [
+    { wch: 15 },
+    { wch: 12 },
+    { wch: 35 },
+    { wch: 25 },
+    { wch: 25 },
+    { wch: 20 },
+    { wch: 20 }
+  ];
+  
+  XLSX.utils.book_append_sheet(wb, wsEgresos, "Egresos");
+
+  XLSX.writeFile(wb, "plantilla_importacion_egresos.xlsx");
+}
+
+function handleExpensesExcelFile(file) {
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      
+      const sheetName = workbook.SheetNames.includes("Egresos") ? "Egresos" : workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      
+      const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+      
+      if (rows.length === 0) {
+        showToast("Error de Importación", "El archivo Excel está vacío.", "error");
+        return;
+      }
+
+      validateAndPreviewExpensesExcelData(rows);
+      
+    } catch(err) {
+      console.error(err);
+      showToast("Error de Importación", "No se pudo leer el archivo Excel.", "error");
+    }
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
+function validateAndPreviewExpensesExcelData(rows) {
+  const previewBody = document.querySelector("#table-expenses-import-preview tbody");
+  if (!previewBody) return;
+  previewBody.innerHTML = "";
+
+  const validRows = [];
+  let invalidCount = 0;
+
+  rows.forEach((row, index) => {
+    const normalized = {};
+    Object.keys(row).forEach(k => {
+      normalized[k.trim().toLowerCase()] = row[k];
+    });
+
+    const excelFecha = normalized["fecha"] || normalized["date"] || "";
+    const excelMonto = normalized["monto"] || normalized["amount"] || "";
+    const excelConcepto = normalized["concepto"] || normalized["concept"] || "";
+    const excelGrupo = normalized["grupo"] || normalized["group"] || "";
+    const excelSubgrupo = normalized["subgrupo"] || normalized["subgroup"] || "";
+    const excelProveedor = normalized["proveedor"] || normalized["provider"] || "";
+    const excelForma = normalized["forma de pago"] || normalized["payment method"] || normalized["forma_pago"] || "";
+
+    let finalFecha = "";
+    if (typeof excelFecha === 'number') {
+      const d = new Date(Math.round((excelFecha - 25569) * 86400 * 1000));
+      finalFecha = d.toISOString().substring(0, 10);
+    } else {
+      const str = String(excelFecha).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        finalFecha = str;
+      } else {
+        const matches = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        if (matches) {
+          finalFecha = `${matches[3]}-${matches[2].padStart(2, '0')}-${matches[1].padStart(2, '0')}`;
+        }
+      }
+    }
+
+    const finalMonto = parseFloat(String(excelMonto).replace(/[\$,]/g, ''));
+
+    const errors = [];
+    if (!finalFecha) errors.push("Fecha inválida");
+    if (isNaN(finalMonto) || finalMonto <= 0) errors.push("Monto debe ser positivo");
+    if (!String(excelConcepto).trim()) errors.push("Concepto requerido");
+    if (!String(excelGrupo).trim()) errors.push("Grupo requerido");
+    if (!String(excelSubgrupo).trim()) errors.push("Subgrupo requerido");
+    if (!String(excelProveedor).trim()) errors.push("Proveedor requerido");
+    if (!String(excelForma).trim()) errors.push("Forma requerido");
+
+    const isValid = errors.length === 0;
+
+    const tr = document.createElement("tr");
+    tr.style.fontSize = "0.8rem";
+    tr.style.borderBottom = "1px solid var(--border-glass)";
+
+    const statusBadge = isValid 
+      ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 6px; font-size: 0.7rem;">Válido</span>`
+      : `<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 2px 6px; font-size: 0.7rem;" title="${errors.join(', ')}">Error</span>`;
+
+    tr.innerHTML = `
+      <td>${finalFecha || `<span class="text-red">Error</span>`}</td>
+      <td class="text-right">${isNaN(finalMonto) ? `<span class="text-red">Error</span>` : formatCurrency(finalMonto)}</td>
+      <td>${excelConcepto || `<span class="text-red">Vacío</span>`}</td>
+      <td>${excelGrupo || `<span class="text-red">Vacío</span>`}</td>
+      <td>${excelSubgrupo || `<span class="text-red">Vacío</span>`}</td>
+      <td>${excelProveedor || `<span class="text-red">Vacío</span>`}</td>
+      <td>${excelForma || `<span class="text-red">Vacío</span>`}</td>
+      <td>${statusBadge}</td>
+    `;
+    previewBody.appendChild(tr);
+
+    if (isValid) {
+      validRows.push({
+        fecha: finalFecha,
+        monto: finalMonto,
+        concepto: String(excelConcepto).trim(),
+        grupoNombre: String(excelGrupo).trim(),
+        subgrupoNombre: String(excelSubgrupo).trim(),
+        proveedor: String(excelProveedor).trim(),
+        formaNombre: String(excelForma).trim()
+      });
+    } else {
+      invalidCount++;
+    }
+  });
+
+  document.getElementById("expenses-import-preview-container").style.display = "block";
+  document.getElementById("expenses-import-count").textContent = rows.length;
+
+  const btnConfirm = document.getElementById("btn-confirm-import-expenses");
+  if (validRows.length > 0) {
+    btnConfirm.classList.remove("disabled");
+    btnConfirm.removeAttribute("disabled");
+    appState.expensesExcelImportData = validRows;
+  } else {
+    btnConfirm.classList.add("disabled");
+    btnConfirm.setAttribute("disabled", "true");
+    appState.expensesExcelImportData = null;
+  }
+
+  if (invalidCount > 0) {
+    showToast("Validación finalizada", `Se encontraron ${invalidCount} filas con errores en el archivo Excel.`, "warning");
+  } else {
+    showToast("Validación exitosa", "Todas las filas del Excel son correctas.", "success");
+  }
+}
+
+async function applyImportedExpensesData() {
+  const importedData = appState.expensesExcelImportData;
+  if (!importedData || importedData.length === 0) return;
+
+  const currentGroups = [...DB.getExpenseGroups()];
+  const currentSubgroups = [...DB.getExpenseSubgroups()];
+  const currentMethods = [...DB.getPaymentMethods()];
+  const currentExpenses = [...DB.getExpenses()];
+
+  let maxGroupId = currentGroups.reduce((max, g) => g.id > max ? g.id : max, 0);
+  let maxSubgroupId = currentSubgroups.reduce((max, s) => s.id > max ? s.id : max, 0);
+  let maxMethodId = currentMethods.reduce((max, m) => m.id > max ? m.id : max, 0);
+
+  importedData.forEach(row => {
+    let group = currentGroups.find(g => g.nombre.toLowerCase().trim() === row.grupoNombre.toLowerCase().trim());
+    if (!group) {
+      maxGroupId++;
+      group = { id: maxGroupId, nombre: row.grupoNombre };
+      currentGroups.push(group);
+    }
+    row.groupId = group.id;
+
+    let subgroup = currentSubgroups.find(s => s.groupId === group.id && s.nombre.toLowerCase().trim() === row.subgrupoNombre.toLowerCase().trim());
+    if (!subgroup) {
+      maxSubgroupId++;
+      subgroup = { id: maxSubgroupId, groupId: group.id, nombre: row.subgrupoNombre };
+      currentSubgroups.push(subgroup);
+    }
+    row.subgroupId = subgroup.id;
+
+    let method = currentMethods.find(m => m.nombre.toLowerCase().trim() === row.formaNombre.toLowerCase().trim());
+    if (!method) {
+      maxMethodId++;
+      method = { id: maxMethodId, nombre: row.formaNombre };
+      currentMethods.push(method);
+    }
+    row.paymentMethodId = method.id;
+  });
+
+  DB.saveExpenseGroups(currentGroups);
+  DB.saveExpenseSubgroups(currentSubgroups);
+  DB.savePaymentMethods(currentMethods);
+
+  const newExpenses = importedData.map((row, idx) => {
+    return {
+      id: 'EXP-' + String(Date.now()) + '-' + idx,
+      fecha: row.fecha,
+      monto: row.monto,
+      concepto: row.concepto,
+      groupId: row.groupId,
+      subgroupId: row.subgroupId,
+      proveedor: row.proveedor,
+      paymentMethodId: row.paymentMethodId,
+      documento: null
+    };
+  });
+
+  const finalExpensesList = [...currentExpenses, ...newExpenses];
+  DB.saveExpenses(finalExpensesList);
+
+  logAuditEvent("IMPORTAR_GASTOS", "Expense", "EXCEL", `Importación de ${newExpenses.length} egresos desde Excel`);
+
+  showToast("Gastos Importados", `Se importaron con éxito ${newExpenses.length} egresos.`, "success");
+  
+  document.getElementById("modal-import-expenses").classList.remove("open");
+  resetExpensesImportState();
+
+  renderGastosView();
+}
+
+function resetExpensesImportState() {
+  appState.expensesExcelImportData = null;
+  document.getElementById("expenses-excel-input").value = "";
+  document.getElementById("expenses-import-preview-container").style.display = "none";
+  document.querySelector("#table-expenses-import-preview tbody").innerHTML = "";
+  
+  const btnConfirm = document.getElementById("btn-confirm-import-expenses");
+  if (btnConfirm) {
+    btnConfirm.classList.add("disabled");
+    btnConfirm.setAttribute("disabled", "true");
+  }
+}
+
+function renderDashboardNotices() {
+  const notices = DB.getNotices();
+  const todayStr = new Date().toISOString().substring(0, 10);
+
+  const container = document.getElementById("dashboard-notices-container");
+  const listEl = document.getElementById("dashboard-notices-list");
+  const countEl = document.getElementById("dashboard-notices-count");
+
+  if (!container || !listEl) return;
+
+  // Filtrar avisos activos y vigentes
+  const activeNotices = notices.filter(n => {
+    if (!n.activo) return false;
+    if (n.fechaPublicacion && n.fechaPublicacion > todayStr) return false;
+    if (n.fechaVigencia && n.fechaVigencia < todayStr) return false;
+    return true;
+  });
+
+  if (activeNotices.length === 0) {
+    container.style.display = "none";
+    return;
+  }
+
+  container.style.display = "block";
+  if (countEl) {
+    countEl.textContent = `${activeNotices.length} ${activeNotices.length === 1 ? 'aviso vigente' : 'avisos vigentes'}`;
+  }
+
+  listEl.innerHTML = "";
+  activeNotices.forEach(n => {
+    const div = document.createElement("div");
+    div.style.background = "rgba(255,255,255,0.02)";
+    div.style.border = "1px solid var(--border-glass)";
+    div.style.borderRadius = "8px";
+    div.style.padding = "12px 16px";
+    div.innerHTML = `
+      <h5 style="margin: 0 0 5px 0; color: #fff; font-size: 0.9rem; font-weight: 600;">${n.titulo}</h5>
+      <p style="margin: 0 0 8px 0; font-size: 0.8rem; color: rgba(255,255,255,0.85); line-height: 1.4;">${n.contenido}</p>
+      <span style="font-size: 0.7rem; color: rgba(255,255,255,0.4); display: block;">Publicado el: ${n.fechaPublicacion}</span>
+    `;
+    listEl.appendChild(div);
+  });
 }
 
 // --- ARRANQUE DE LA APLICACIÓN (onload) ---

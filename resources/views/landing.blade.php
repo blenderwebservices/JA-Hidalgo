@@ -326,9 +326,6 @@
                 <a href="{{ route('filament.admin.auth.login') }}" class="btn btn-secondary">
                     <i data-lucide="log-in"></i> Iniciar Sesión
                 </a>
-                <a href="{{ route('filament.admin.auth.register') }}" class="btn btn-gold">
-                    <i data-lucide="user-plus"></i> Registrarse
-                </a>
             @endauth
         </div>
     </nav>
@@ -342,11 +339,6 @@
                 <a href="{{ url('/dashboard') }}" class="btn btn-primary btn-gold" style="padding: 14px 30px; font-size: 1rem;">
                     <i data-lucide="arrow-right-circle"></i> Acceder al Dashboard
                 </a>
-                @guest
-                    <a href="{{ route('filament.admin.auth.register') }}" class="btn btn-secondary" style="padding: 14px 30px; font-size: 1rem;">
-                        Crear Cuenta Condómino
-                    </a>
-                @endguest
             </div>
         </div>
     </header>

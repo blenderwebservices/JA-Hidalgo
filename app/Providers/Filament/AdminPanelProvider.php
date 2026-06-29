@@ -27,7 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->registration(\App\Filament\Pages\Auth\CustomRegister::class)
+            ->passwordReset()
             ->brandLogo(asset('assets/logo_jardines_hidalgo.png'))
             ->brandLogoHeight('3rem')
             ->colors([

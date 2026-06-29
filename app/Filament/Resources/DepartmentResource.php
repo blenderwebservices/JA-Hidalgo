@@ -6,6 +6,7 @@ use App\Filament\Resources\DepartmentResource\Pages;
 use App\Models\Department;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -83,8 +84,14 @@ class DepartmentResource extends Resource
                     ->default('normal')
                     ->required(),
 
+                Forms\Components\Toggle::make('con_convenio')
+                    ->label('Con Convenio')
+                    ->default(false)
+                    ->live(),
+
                 Forms\Components\Textarea::make('notas')
                     ->label('Notas Adicionales')
+                    ->required(fn (Get $get): bool => (bool) $get('con_convenio'))
                     ->columnSpanFull(),
             ]);
     }
@@ -134,6 +141,10 @@ class DepartmentResource extends Resource
                         'en_venta' => 'warning',
                         default => 'gray',
                     }),
+                Tables\Columns\IconColumn::make('con_convenio')
+                    ->label('Convenio')
+                    ->boolean()
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('torre')
@@ -150,6 +161,8 @@ class DepartmentResource extends Resource
                         'desocupado' => 'Desocupado',
                         'en_venta' => 'En Venta',
                     ]),
+                Tables\Filters\TernaryFilter::make('con_convenio')
+                    ->label('Con Convenio'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

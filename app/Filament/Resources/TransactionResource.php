@@ -69,15 +69,7 @@ class TransactionResource extends Resource
                 
                 Forms\Components\Select::make('destino_abono')
                     ->label('Destino del Dinero (Solo Abonos)')
-                    ->options([
-                        'Banorte Miguel' => 'Banorte Miguel',
-                        'NU Miguel' => 'NU Miguel',
-                        'Cuenta Carlos' => 'Cuenta Carlos',
-                        'Carlos no Reportado' => 'Carlos no Reportado',
-                        'Ajuste por Acuerdo' => 'Ajuste por Acuerdo',
-                        'Efectivo' => 'Efectivo',
-                        'Otro' => 'Otro',
-                    ])
+                    ->options(fn () => \App\Models\MoneyDestination::pluck('nombre', 'nombre')->toArray())
                     ->nullable(),
                 
                 Forms\Components\TextInput::make('monto')

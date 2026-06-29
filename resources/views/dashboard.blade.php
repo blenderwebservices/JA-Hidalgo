@@ -20,6 +20,55 @@
   <!-- Stylesheet and Favicon -->
   <link rel="stylesheet" href="{{ asset('css/index.css') }}">
   <link rel="icon" type="image/png" href="assets/logo_jardines_hidalgo.png">
+  <style>
+    @media print {
+      body {
+        background: #fff !important;
+        color: #000 !important;
+      }
+      .sidebar, .no-print, .back-nav, .brand, .admin-profile, .nav-menu {
+        display: none !important;
+      }
+      .app-container {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+      }
+      .app-view {
+        display: none !important;
+      }
+      .app-view.active-view {
+        display: block !important;
+      }
+      .glass-card, .print-full-width {
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        color: #000 !important;
+      }
+      .dashboard-table th, .dashboard-table td {
+        color: #000 !important;
+        border-bottom: 1px solid #ccc !important;
+        padding: 8px !important;
+      }
+      .dashboard-table th {
+        border-top: 1px solid #000 !important;
+        border-bottom: 2px solid #000 !important;
+      }
+      #table-resumen-saldos {
+        font-size: 10px !important;
+        width: 100% !important;
+      }
+      #table-resumen-saldos td, #table-resumen-saldos th {
+        padding: 4px 6px !important;
+      }
+    }
+  </style>
 </head>
 <body class="dark-theme">
   <div class="app-container">
@@ -38,8 +87,16 @@
           <span>Dashboard</span>
         </a>
         <a href="#condominio" class="nav-item" data-view="condominio">
-          <i data-lucide="building-2"></i>
-          <span>Condominio</span>
+          <i data-lucide="building"></i>
+          <span>Propiedades</span>
+        </a>
+        <a href="#resumen-saldos" class="nav-item" data-view="resumen-saldos">
+          <i data-lucide="file-spreadsheet"></i>
+          <span>Vista Resumida</span>
+        </a>
+        <a href="#gastos" class="nav-item" data-view="gastos">
+          <i data-lucide="banknotes"></i>
+          <span>Gastos (Egresos)</span>
         </a>
         <a href="#agua" class="nav-item" data-view="agua">
           <i data-lucide="droplet"></i>
@@ -106,6 +163,21 @@
 
         <!-- 1. DASHBOARD VIEW -->
         <section id="view-dashboard" class="app-view active-view">
+          <!-- Pizarra de Avisos / Notices Board -->
+          <div id="dashboard-notices-container" style="margin-bottom: 20px; display: none;">
+            <div class="glass-card" style="padding: 15px 20px; border-left: 4px solid var(--gold-primary);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <h4 style="margin: 0; color: var(--gold-primary); display: flex; align-items: center; gap: 8px;">
+                  <i data-lucide="megaphone" style="width: 20px; height: 20px;"></i> Pizarra de Avisos y Comunicados
+                </h4>
+                <span class="text-muted" style="font-size: 0.75rem;" id="dashboard-notices-count">0 avisos vigentes</span>
+              </div>
+              <div id="dashboard-notices-list" style="display: flex; flex-direction: column; gap: 12px; max-height: 250px; overflow-y: auto; padding-right: 5px;">
+                <!-- Filled dynamically -->
+              </div>
+            </div>
+          </div>
+
           <!-- Summary Cards -->
           <div class="metrics-grid">
             <div class="metric-card glass-card">
@@ -126,7 +198,11 @@
               <div class="metric-data">
                 <h3>Total Cobrado</h3>
                 <p class="metric-value text-gold" id="dashboard-total-collected">$0.00</p>
-                <span class="metric-subtext">Abonos y pagos registrados</span>
+                <div style="font-size: 0.75rem; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; color: rgba(255,255,255,0.7);">
+                  <span>Actual: <strong id="dashboard-collected-actual" style="color: var(--gold-primary);">$0.00</strong></span>
+                  <span>Pasada: <strong id="dashboard-collected-past" style="color: #cbd5e1;">$0.00</strong></span>
+                </div>
+                <span class="metric-subtext" style="margin-top: 6px;">Abonos y pagos registrados</span>
               </div>
             </div>
 
@@ -193,6 +269,18 @@
                     </tbody>
                   </table>
                 </div>
+            </div>
+
+            <!-- Últimos 5 abonos por destino de administración actual -->
+            <div class="dashboard-card glass-card span-3" style="margin-top: 20px;">
+              <div class="card-header">
+                <h3>Últimos 5 Abonos por Cuenta (Administración Actual)</h3>
+                <p class="card-subtitle">Detalle reciente de abonos en cuentas vigentes</p>
+              </div>
+              <div class="card-body">
+                <div id="container-recent-abonos" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                  <!-- Dynamic content loaded via JS -->
+                </div>
               </div>
             </div>
           </div>
@@ -243,6 +331,192 @@
           </div>
         </section>
 
+        <!-- N. VISTA RESUMIDA DE SALDOS (LIBRE ACCESO) -->
+        <section id="view-resumen-saldos" class="app-view">
+          <div class="control-panel glass-card no-print" style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <input type="checkbox" id="chk-filter-deudas-convenio" style="width: 18px; height: 18px; cursor: pointer;">
+              <label for="chk-filter-deudas-convenio" style="margin-bottom: 0; cursor: pointer; font-weight: 500; color: var(--gold-primary);">Mostrar solo adeudos vigentes (sin convenio)</label>
+            </div>
+            <button class="btn btn-primary" id="btn-print-resumen" style="padding: 10px 20px;">
+              <i data-lucide="printer" class="inline-icon"></i> Imprimir Hoja de Saldos
+            </button>
+          </div>
+
+          <div class="glass-card print-full-width" style="padding: 25px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <h2 style="margin: 0; color: var(--gold-primary); font-size: 1.6rem; letter-spacing: 1px;">Jardines de Allende Hidalgo</h2>
+              <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.6); font-size: 0.9rem;">Resumen de Saldos General al <span id="resumen-saldos-fecha">-</span></p>
+            </div>
+            
+            <div class="table-container" style="overflow-x: auto;">
+              <table class="dashboard-table" id="table-resumen-saldos" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="border-bottom: 1px solid var(--border-glass); text-align: left;">
+                    <th style="padding: 12px; color: var(--gold-primary); font-weight: 600;">Propiedad</th>
+                    <th style="padding: 12px; color: var(--gold-primary); font-weight: 600;">Contacto</th>
+                    <th style="padding: 12px; color: var(--gold-primary); font-weight: 600;">Rol</th>
+                    <th style="padding: 12px; color: var(--gold-primary); font-weight: 600;">Convenio</th>
+                    <th style="padding: 12px; color: var(--gold-primary); font-weight: 600; text-align: right;">Saldo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Filled dynamically via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- N. MODULO DE GASTOS (EGRESOS) -->
+        <section id="view-gastos" class="app-view">
+          <!-- KPI Cards for Expenses -->
+          <div class="metrics-grid" style="margin-bottom: 20px;">
+            <div class="metric-card glass-card">
+              <div class="metric-icon bg-red-light">
+                <i data-lucide="trending-down" class="red-icon"></i>
+              </div>
+              <div class="metric-data">
+                <h3>Total Gastos (Egresos)</h3>
+                <p class="metric-value text-red" id="expenses-total-amount">$0.00</p>
+                <span class="metric-subtext">Suma de egresos registrados</span>
+              </div>
+            </div>
+
+            <div class="metric-card glass-card">
+              <div class="metric-icon bg-emerald-light">
+                <i data-lucide="scale" class="emerald-icon"></i>
+              </div>
+              <div class="metric-data">
+                <h3>Balance Adm. Actual</h3>
+                <p class="metric-value" id="expenses-net-balance">$0.00</p>
+                <span class="metric-subtext">Cobrado Adm. Actual - Gastos</span>
+              </div>
+            </div>
+
+            <div class="metric-card glass-card">
+              <div class="metric-icon bg-blue-light">
+                <i data-lucide="folder" class="blue-icon"></i>
+              </div>
+              <div class="metric-data">
+                <h3>Categoría Mayor Gasto</h3>
+                <p class="metric-value text-blue" id="expenses-top-category" style="font-size: 1.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</p>
+                <span class="metric-subtext">Grupo con más egresos</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs for Gastos View: Reports vs List -->
+          <div class="control-panel glass-card no-print" style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+            <div style="display: flex; gap: 10px;">
+              <button class="btn btn-secondary active" id="btn-gastos-tab-reports" style="padding: 8px 16px;">
+                <i data-lucide="bar-chart-3" class="inline-icon"></i> Reportes y Gráficas
+              </button>
+              <button class="btn btn-secondary" id="btn-gastos-tab-list" style="padding: 8px 16px;">
+                <i data-lucide="list" class="inline-icon"></i> Listado de Gastos
+              </button>
+            </div>
+            
+            <div class="admin-only" style="display: flex; gap: 10px;">
+              <button class="btn btn-primary" id="btn-open-import-gastos" style="padding: 8px 16px;">
+                <i data-lucide="file-spreadsheet" class="inline-icon"></i> Importar Excel (.xlsx)
+              </button>
+              <button class="btn btn-primary btn-gold" id="btn-open-add-gasto" style="padding: 8px 16px;">
+                <i data-lucide="plus-circle" class="inline-icon"></i> Registrar Gasto Manual
+              </button>
+            </div>
+          </div>
+
+          <!-- Sub-view 1: Reportes y Gráficas -->
+          <div id="gastos-subview-reports" class="dashboard-grid">
+            <!-- Gráfica 1: Gastos por Mes por Año Fiscal -->
+            <div class="dashboard-card glass-card span-2">
+              <div class="card-header">
+                <h3>Gastos Mensuales por Ejercicio Fiscal</h3>
+                <p class="card-subtitle">Evolución mensual de egresos agrupados por año</p>
+              </div>
+              <div class="card-body chart-container">
+                <canvas id="chartExpensesMonthly"></canvas>
+              </div>
+            </div>
+
+            <!-- Gráfica 3: Gastos por Grupo y Subgrupo (Pie/Doughnut) -->
+            <div class="dashboard-card glass-card">
+              <div class="card-header">
+                <h3>Desglose por Categoría (Grupo)</h3>
+                <p class="card-subtitle">Distribución porcentual de los egresos</p>
+              </div>
+              <div class="card-body chart-container" style="display: flex; align-items: center; justify-content: center;">
+                <canvas id="chartExpensesGroup" style="max-height: 200px; max-width: 200px;"></canvas>
+              </div>
+            </div>
+
+            <!-- Balance Details and Subgroups Breakdown -->
+            <div class="dashboard-card glass-card span-3">
+              <div class="card-header">
+                <h3>Desglose Detallado de Gastos por Grupo y Subgrupo</h3>
+                <p class="card-subtitle">Estructura jerárquica de egresos acumulados</p>
+              </div>
+              <div class="card-body">
+                <div class="table-container">
+                  <table class="dashboard-table" id="table-expenses-breakdown">
+                    <thead>
+                      <tr>
+                        <th>Grupo / Categoría</th>
+                        <th>Subgrupo</th>
+                        <th class="text-right">Total Egresado</th>
+                        <th class="text-right">Porcentaje</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Dynamic rows -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 2: Listado de Gastos -->
+          <div id="gastos-subview-list" style="display: none;" class="glass-card">
+            <div class="control-panel" style="background: none; border: none; padding: 15px; display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+              <div style="display: flex; gap: 10px; flex-grow: 1; max-width: 500px;">
+                <input type="text" id="search-expenses" placeholder="Buscar por concepto o proveedor..." style="flex-grow: 1; padding: 10px 15px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); color: #fff; outline: none;">
+              </div>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <select id="filter-expenses-group" style="padding: 10px 15px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); color: #fff; cursor: pointer; outline: none;">
+                  <option value="">Todos los grupos</option>
+                  <!-- Dynamically filled -->
+                </select>
+                <select id="filter-expenses-method" style="padding: 10px 15px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); color: #fff; cursor: pointer; outline: none;">
+                  <option value="">Todas las formas de pago</option>
+                  <!-- Dynamically filled -->
+                </select>
+              </div>
+            </div>
+
+            <div class="table-container" style="padding: 0 15px 15px 15px;">
+              <table class="dashboard-table" id="table-expenses-list">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Concepto</th>
+                    <th>Grupo / Subgrupo</th>
+                    <th>Proveedor</th>
+                    <th>Forma de Pago</th>
+                    <th class="text-right">Monto</th>
+                    <th class="no-print">Soporte</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Filled dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
         <!-- 3. DETALLE DE DEPARTAMENTO VIEW (FICHA TÉCNICA) -->
         <section id="view-detalle" class="app-view">
           <div class="back-nav">
@@ -274,6 +548,10 @@
                   <div class="info-row">
                     <span class="info-label">Rol del Contacto</span>
                     <span class="badge" id="depto-detail-role">-</span>
+                  </div>
+                  <div class="info-row" id="depto-detail-convenio-row" style="display: none;">
+                    <span class="info-label">Convenio Especial</span>
+                    <span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); text-transform: uppercase;">Con Convenio</span>
                   </div>
                   <div class="info-row">
                     <span class="info-label">Estado Propiedad</span>
@@ -754,6 +1032,10 @@
               <label for="edit-contact-phone">Teléfono Celular:</label>
               <input type="tel" id="edit-contact-phone" placeholder="10 dígitos">
             </div>
+            <div class="form-group span-2" style="display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 4px;">
+              <input type="checkbox" id="edit-contact-convenio" style="width: auto; height: 16px; margin: 0; cursor: pointer;">
+              <label for="edit-contact-convenio" style="margin: 0; cursor: pointer; color: var(--gold-primary); font-weight: 500;">Esta propiedad tiene un convenio activo</label>
+            </div>
             <div class="form-group span-2">
               <label for="edit-contact-notes">Notas del Departamento (Internas):</label>
               <textarea id="edit-contact-notes" rows="3" placeholder="Ingresa comentarios, convenios o aclaraciones..."></textarea>
@@ -910,6 +1192,120 @@
       <div class="modal-footer" style="background: none; border-top: none;">
         <button type="button" class="btn btn-secondary" id="btn-cancel-reset">Cancelar</button>
         <button type="button" class="btn btn-danger disabled" id="btn-confirm-reset" disabled>Restablecer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 6: Registrar Gasto Manual -->
+  <div class="modal-overlay" id="modal-add-expense">
+    <div class="modal-content glass-card" style="max-width: 600px; width: 90%;">
+      <div class="modal-header">
+        <h3>Registrar Gasto Manual</h3>
+        <button class="btn-close-modal" id="btn-close-add-expense-modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="form-add-expense">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group span-2">
+              <label for="add-expense-concept">Concepto del Gasto:</label>
+              <input type="text" id="add-expense-concept" required placeholder="ej. Compra de pintura, Reparación bomba de agua">
+            </div>
+            <div class="form-group">
+              <label for="add-expense-date">Fecha:</label>
+              <input type="date" id="add-expense-date" required>
+            </div>
+            <div class="form-group">
+              <label for="add-expense-amount">Monto ($):</label>
+              <input type="number" id="add-expense-amount" step="0.01" min="0.01" required placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label for="add-expense-group">Grupo de Gasto:</label>
+              <select id="add-expense-group" required style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-glass); color: #fff;">
+                <option value="">Selecciona grupo</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="add-expense-subgroup">Subgrupo de Gasto:</label>
+              <select id="add-expense-subgroup" required style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-glass); color: #fff;">
+                <option value="">Selecciona subgrupo</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="add-expense-provider">Proveedor:</label>
+              <input type="text" id="add-expense-provider" required placeholder="Nombre o Razón Social">
+            </div>
+            <div class="form-group">
+              <label for="add-expense-payment-method">Forma de Pago:</label>
+              <select id="add-expense-payment-method" required style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-glass); color: #fff;">
+                <option value="">Selecciona forma</option>
+              </select>
+            </div>
+            <div class="form-group span-2">
+              <label for="add-expense-doc">Documento de Soporte (Nombre del archivo):</label>
+              <input type="text" id="add-expense-doc" placeholder="ej. factura_123.pdf (opcional)">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-add-expense">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Registrar Gasto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 7: Importar Gastos Excel -->
+  <div class="modal-overlay" id="modal-import-expenses">
+    <div class="modal-content glass-card" style="max-width: 850px; width: 95%;">
+      <div class="modal-header">
+        <h3>Importar Egresos / Gastos desde Excel</h3>
+        <button class="btn-close-modal" id="btn-close-import-expenses-modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+          <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Carga tu archivo Excel con las columnas correspondientes.</p>
+          <button class="btn btn-sm btn-secondary" id="btn-download-expenses-template">
+            <i data-lucide="download" class="inline-icon"></i> Descargar Plantilla (.xlsx)
+          </button>
+        </div>
+        
+        <div class="dropzone-area" id="expenses-dropzone" style="border: 2px dashed var(--border-glass); border-radius: 12px; padding: 25px; text-align: center; cursor: pointer; margin-bottom: 20px; transition: border-color 0.3s;">
+          <i data-lucide="upload-cloud" style="width: 40px; height: 40px; color: var(--gold-primary); margin-bottom: 8px;"></i>
+          <p style="margin: 0 0 4px 0; font-weight: 600; color: #fff;">Arrastra tu archivo aquí o haz clic para explorar</p>
+          <span style="font-size: 0.7rem; color: rgba(255,255,255,0.4);">Formatos aceptados: .xlsx, .xls</span>
+          <input type="file" id="expenses-excel-input" accept=".xlsx, .xls" style="display: none;">
+        </div>
+
+        <div id="expenses-import-preview-container" style="display: none; margin-top: 15px;">
+          <h4 style="color: var(--gold-primary); margin-bottom: 10px; font-size: 0.95rem;">Previsualización de Datos (<span id="expenses-import-count">0</span> filas)</h4>
+          <div class="table-container" style="max-height: 200px; overflow-y: auto;">
+            <table class="dashboard-table" id="table-expenses-import-preview">
+              <thead>
+                <tr style="font-size: 0.75rem;">
+                  <th>Fecha</th>
+                  <th class="text-right">Monto</th>
+                  <th>Concepto</th>
+                  <th>Grupo</th>
+                  <th>Subgrupo</th>
+                  <th>Proveedor</th>
+                  <th>Forma Pago</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Rows dynamically generated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-import-expenses">Cancelar</button>
+        <button type="button" class="btn btn-primary disabled" id="btn-confirm-import-expenses" disabled>Aplicar Importación</button>
       </div>
     </div>
   </div>

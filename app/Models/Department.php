@@ -15,12 +15,17 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
     'contacto_email',
     'contacto_celular',
     'notas',
-    'status'
+    'status',
+    'con_convenio'
 ])]
 class Department extends Model
 {
     public $incrementing = false;
     protected $keyType = 'string';
+
+    protected $casts = [
+        'con_convenio' => 'boolean',
+    ];
 
     public function transactions()
     {
