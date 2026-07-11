@@ -3553,8 +3553,9 @@ function renderResumenSaldosView() {
   }
 
   filteredDepts.forEach(d => {
-    const saldoStr = d.saldo < 0 ? `-${formatCurrency(Math.abs(d.saldo))}` : formatCurrency(d.saldo);
-    const saldoColor = d.saldo < 0 ? "text-red font-bold" : "text-emerald font-bold";
+    // const saldoStr = d.saldo < 0.01 ? `-${formatCurrency(Math.abs(d.saldo))}` : formatCurrency(d.saldo);
+    const saldoStr = formatCurrency(d.saldo.toFixed(2));
+    const saldoColor = d.saldo.toFixed(2) < 0.0 ? "text-red font-bold" : "text-emerald font-bold";
     const convenioBadge = d.conConvenio 
       ? `<span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); font-size: 0.7rem; padding: 2px 6px; text-transform: uppercase;">Con Convenio</span>`
       : `<span class="badge" style="background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); font-size: 0.7rem; padding: 2px 6px; text-transform: uppercase;">Sin Convenio</span>`;
