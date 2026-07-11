@@ -162,3 +162,5 @@ Crear grupos y subgrupos de gastos en el panel admin.
 Importar un Excel de gastos en el Dashboard SPA, comprobar las validaciones y verificar que se actualicen las gráficas de reportes mensuales y desgloses por categoría.
 Verificación de la Pizarra de Avisos:
 Publicar un aviso en el panel de Filament y verificar que aparezca inmediatamente en el Dashboard de todos los usuarios.
+
+

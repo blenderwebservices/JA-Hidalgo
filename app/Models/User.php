@@ -42,12 +42,14 @@ class User extends Authenticatable implements FilamentUser
         return $this->role === 'admin';
     }
 
-    /**
-     * Determine if the user can access the given panel.
-     */
+    public function isAdminReadOnly(): bool
+    {
+        return $this->role === 'admin_lectura';
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->isAdmin();
+        return true;
     }
 }
 

@@ -40,6 +40,36 @@ La aplicación está diseñada para digitalizar, automatizar y transparentar la 
 
 ---
 
+## 🔐 Roles y Vistas del Sistema
+
+El sistema implementa un control de acceso basado en tres niveles de permisos:
+
+1. **Administrador (`admin`)**:
+   - Acceso total a todas las funciones del Dashboard y al panel administrativo (Filament).
+   - Puede registrar, editar y eliminar transacciones, propiedades y usuarios.
+   - Tiene acceso a la impresión de recibos, reportes globales en PDF/Excel y respaldos.
+
+2. **Admin - Solo Lectura (`admin_lectura`)**:
+   - Puede acceder al Dashboard y ver todo el detalle financiero, saldos e historial de todas las propiedades.
+   - **Restricciones**: No puede modificar nada. Los botones para guardar, editar, eliminar, agregar cargos/abonos, generar PDFs o exportar a Excel se encuentran ocultos o deshabilitados.
+
+3. **Condómino (`condomino`)**:
+   - Acceso sumamente restringido, exclusivo a la información de su propia propiedad vinculada.
+   - Puede acceder a su Estado de Cuenta y ver sus transacciones.
+   - **Restricciones**: No puede ver la vista resumida de otras propiedades, no ve los reportes globales, ni la sección de "Últimos Abonos" de la administración. No puede modificar ni borrar datos.
+
+---
+
+## 💾 Respaldo y Restauración de Base de Datos
+
+El sistema permite descargar una copia completa del estado actual de la base de datos en formato JSON (Botón: *Exportar Respaldo JSON*).
+
+> [!WARNING]
+> **Sobre la Restauración:**
+> Si generas un respaldo y posteriormente cargas ese archivo usando "Cargar y Restaurar JSON", **la base de datos se sobrescribirá por completo** con la información del archivo. Esto significa que **cualquier movimiento (cargo, abono, nuevo usuario) que se haya registrado entre el momento en que descargaste el respaldo y el momento en que lo restauras será eliminado permanentemente**. El sistema vuelve exactamente al estado en el que estaba al momento de generar el archivo JSON.
+
+---
+
 ## 🛠️ Arquitectura del Sistema
 
 La arquitectura está construida bajo los estándares del desarrollo web moderno con PHP y JS:

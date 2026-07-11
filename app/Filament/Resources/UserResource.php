@@ -49,9 +49,11 @@ class UserResource extends Resource
                     ->label('Rol')
                     ->options([
                         'admin' => 'Administrador',
+                        'admin_lectura' => 'Admin (Solo Lectura)',
                         'condomino' => 'Condómino',
                     ])
                     ->default('condomino')
+                    ->disabled(fn () => !auth()->user()->isAdmin())
                     ->required(),
                 
                 Forms\Components\Select::make('department_id')
@@ -65,6 +67,7 @@ class UserResource extends Resource
                     )
                     ->searchable()
                     ->placeholder('Sin departamento asignado')
+                    ->disabled(fn () => !auth()->user()->isAdmin())
                     ->nullable(),
             ]);
     }
@@ -84,6 +87,7 @@ class UserResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'admin' => 'success',
+                        'admin_lectura' => 'info',
                         'condomino' => 'warning',
                         default => 'gray',
                     })
@@ -103,6 +107,7 @@ class UserResource extends Resource
                     ->label('Rol')
                     ->options([
                         'admin' => 'Administrador',
+                        'admin_lectura' => 'Admin (Solo Lectura)',
                         'condomino' => 'Condómino',
                     ]),
             ])
@@ -120,6 +125,17 @@ class UserResource extends Resource
     public static function getRelations(): array
     {
         return [];
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        if (!auth()->user()->isAdmin()) {
+            $query->where('id', auth()->id());
+        }
+        
+        return $query;
     }
 
     public static function getPages(): array

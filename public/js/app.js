@@ -567,7 +567,9 @@ function calculateDeptoBalance(deptoId, transactions) {
     if (t.tipo === "abono") balance += t.monto;
     else if (t.tipo === "cargo") balance -= t.monto;
   });
-  return balance;
+  let roundedBalance = Math.round(balance * 100) / 100;
+  if (roundedBalance === -0) roundedBalance = 0;
+  return roundedBalance;
 }
 
 function formatCurrency(amount) {
@@ -1041,7 +1043,9 @@ function renderDeptoDetailView() {
   deptoTransactions.forEach(t => {
     if (t.tipo === "abono") runningBalance += t.monto;
     else if (t.tipo === "cargo") runningBalance -= t.monto;
-    t.accumulatedBalance = runningBalance;
+    let rounded = Math.round(runningBalance * 100) / 100;
+    if (rounded === -0) rounded = 0;
+    t.accumulatedBalance = rounded;
   });
 
   // Aplicar filtros de fecha
@@ -1079,6 +1083,7 @@ function renderDeptoDetailView() {
         <td class="text-right ${balanceClass}">${t.accumulatedBalance < 0 ? '-' : ''}${formatCurrency(Math.abs(t.accumulatedBalance))}</td>
         <td class="text-center">
           <div style="display: flex; gap: 4px; justify-content: center;">
+            <button class="btn-icon-sm btn-print-receipt" data-id="${t.id}" title="Imprimir Recibo"><i data-lucide="printer" style="width: 12px; height: 12px;"></i></button>
             <button class="btn-icon-sm btn-edit-tx" data-id="${t.id}" title="Editar transacción"><i data-lucide="edit-2" style="width: 12px; height: 12px;"></i></button>
             <button class="btn-icon-sm btn-delete btn-delete-tx" data-id="${t.id}" title="Eliminar transacción"><i data-lucide="trash-2" style="width: 12px; height: 12px;"></i></button>
           </div>
@@ -1099,6 +1104,13 @@ function renderDeptoDetailView() {
       btn.addEventListener("click", (e) => {
         const txId = e.currentTarget.getAttribute("data-id");
         confirmDeleteTransaction(txId);
+      });
+    });
+
+    ledgerBody.querySelectorAll(".btn-print-receipt").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const txId = e.currentTarget.getAttribute("data-id");
+        generateReceiptPDF(txId, dept);
       });
     });
   }
@@ -2085,7 +2097,72 @@ function initEventListeners() {
   });
 
   // Detalle depto - Generar PDF Estado de cuenta
-  document.getElementById("btn-download-pdf").addEventListener("click", generateAnnualPDFReport);
+  document.getElementById("btn-download-pdf").addEventListener("click", () => generateAnnualPDFReport(null, null));
+
+// --- GENERADOR DE RECIBO INDIVIDUAL PDF ---
+function generateReceiptPDF(txId, dept) {
+  const transactions = DB.getTransactions();
+  const tx = transactions.find(t => t.id === txId);
+  if (!tx) return;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("p", "pt", "a5"); // A5 para recibos
+  
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let cursorY = 40;
+
+  // Header
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Jardines de Allende", pageWidth / 2, cursorY, { align: "center" });
+  
+  cursorY += 20;
+  doc.setFontSize(12);
+  doc.setTextColor(100, 116, 139);
+  doc.text(tx.tipo === "abono" ? "RECIBO DE PAGO" : "NOTA DE CARGO", pageWidth / 2, cursorY, { align: "center" });
+
+  cursorY += 40;
+  
+  // Info
+  doc.setFontSize(10);
+  doc.setTextColor(30, 41, 59);
+  doc.setFont("helvetica", "normal");
+  
+  doc.text(`Propiedad: ${dept.torre} - ${dept.numero} (${dept.id})`, 40, cursorY);
+  cursorY += 20;
+  doc.text(`Fecha de Transacción: ${tx.fecha}`, 40, cursorY);
+  cursorY += 20;
+  doc.text(`ID de Transacción: ${tx.id}`, 40, cursorY);
+  cursorY += 20;
+  doc.text(`Periodo: ${tx.mesCorrespondiente}`, 40, cursorY);
+  
+  cursorY += 30;
+  
+  // Divider
+  doc.setDrawColor(226, 232, 240);
+  doc.line(40, cursorY, pageWidth - 40, cursorY);
+  cursorY += 20;
+
+  // Detalles de Monto y Concepto
+  doc.setFont("helvetica", "bold");
+  doc.text("Concepto:", 40, cursorY);
+  doc.setFont("helvetica", "normal");
+  doc.text(tx.concepto, 100, cursorY);
+  
+  cursorY += 30;
+  
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("Importe Total:", 40, cursorY);
+  const color = tx.tipo === "abono" ? [16, 185, 129] : [239, 68, 68]; // Emerald o Red
+  doc.setTextColor(color[0], color[1], color[2]);
+  doc.text(formatCurrency(tx.monto), pageWidth - 40, cursorY, { align: "right" });
+
+  // Guardar y descargar
+  doc.save(`Recibo_${tx.tipo}_${tx.id}.pdf`);
+  showToast("Recibo Generado", "El recibo PDF ha sido descargado", "success");
+}
 
   // 5. Lecturas de Agua - Guardar lecturas
   document.getElementById("btn-save-water-readings").addEventListener("click", saveWaterReadings);

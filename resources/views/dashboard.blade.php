@@ -60,6 +60,18 @@
         border-top: 1px solid #000 !important;
         border-bottom: 2px solid #000 !important;
       }
+      .table-container, .card-body {
+        overflow: visible !important;
+        max-height: none !important;
+        height: auto !important;
+      }
+      table {
+        page-break-inside: auto;
+      }
+      tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+      }
       #table-resumen-saldos {
         font-size: 10px !important;
         width: 100% !important;
@@ -68,9 +80,34 @@
         padding: 4px 6px !important;
       }
     }
+    
+    .role-restricted #btn-download-pdf,
+    .role-restricted #btn-report-global-pdf,
+    .role-restricted #btn-report-global-excel,
+    .role-restricted #btn-export-excel-t1,
+    .role-restricted #btn-export-excel-t2,
+    .role-restricted #btn-export-excel-t3,
+    .role-restricted #btn-report-destino-income,
+    .role-restricted #btn-export-destino-excel,
+    .role-restricted #btn-export-backup,
+    .role-restricted #btn-import-backup-trigger,
+    .role-restricted #btn-reset-db-trigger,
+    .role-restricted #btn-edit-contact,
+    .role-restricted #btn-open-cargo-modal,
+    .role-restricted #btn-open-abono-modal,
+    .role-restricted #btn-save-water-readings,
+    .role-restricted #btn-open-import-gastos,
+    .role-restricted #btn-open-add-gasto,
+    .role-restricted .btn-edit-tx,
+    .role-restricted .btn-delete-tx,
+    .role-restricted .btn-print-receipt,
+    .role-restricted #btn-print-resumen,
+    .role-restricted #btn-report-pdf-individual {
+      display: none !important;
+    }
   </style>
 </head>
-<body class="dark-theme">
+<body class="dark-theme {{ in_array(auth()->user()->role, ['condomino', 'admin_lectura']) ? 'role-restricted' : '' }}">
   <div class="app-container">
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
@@ -272,6 +309,7 @@
             </div>
 
             <!-- Últimos 5 abonos por destino de administración actual -->
+            @if(in_array(auth()->user()->role, ['admin', 'admin_lectura']))
             <div class="dashboard-card glass-card span-3" style="margin-top: 20px;">
               <div class="card-header">
                 <h3>Últimos 5 Abonos por Cuenta (Administración Actual)</h3>
@@ -283,6 +321,7 @@
                 </div>
               </div>
             </div>
+            @endif
           </div>
         </section>
 
