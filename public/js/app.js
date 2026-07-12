@@ -697,6 +697,7 @@ function renderDashboard() {
     
     // Agrupar por destino
     const activeDestinations = destinations.filter(d => d.administracionActual);
+    const allDepts = DB.getAllDepartments();
     
     if (activeDestinations.length === 0) {
       containerRecentAbonos.innerHTML = `<p class="text-muted text-center span-3" style="grid-column: 1 / -1; padding: 20px;">No hay cuentas de administración actual configuradas.</p>`;
@@ -714,13 +715,16 @@ function renderDashboard() {
         
         let rowsHtml = "";
         if (destAbonos.length === 0) {
-          rowsHtml = `<tr><td colspan="3" style="text-align: center; color: rgba(255,255,255,0.4); font-size: 0.8rem; padding: 10px 0;">Sin abonos registrados</td></tr>`;
+          rowsHtml = `<tr><td colspan="4" style="text-align: center; color: rgba(255,255,255,0.4); font-size: 0.8rem; padding: 10px 0;">Sin abonos registrados</td></tr>`;
         } else {
           destAbonos.forEach(a => {
+            const dept = allDepts.find(d => d.id === a.deptoId);
+            const deptoText = dept ? `${dept.torre.replace("Torre ", "T")} - ${dept.numero}` : a.deptoId || "N/A";
             rowsHtml += `
               <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <td style="font-size: 0.8rem; padding: 8px 0; color: rgba(255,255,255,0.6);">${a.fecha}</td>
-                <td style="font-size: 0.8rem; padding: 8px 0; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${a.concepto}">${a.concepto}</td>
+                <td style="font-size: 0.8rem; padding: 8px 0; color: var(--gold-primary); font-weight: 500;">${deptoText}</td>
+                <td style="font-size: 0.8rem; padding: 8px 0; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${a.concepto}">${a.concepto}</td>
                 <td style="font-size: 0.8rem; padding: 8px 0; text-align: right; font-weight: bold; color: var(--emerald-primary);">${formatCurrency(a.monto)}</td>
               </tr>
             `;
@@ -733,6 +737,7 @@ function renderDashboard() {
             <thead>
               <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left; color: rgba(255,255,255,0.4); font-size: 0.75rem;">
                 <th style="padding-bottom: 4px; font-weight: 500;">Fecha</th>
+                <th style="padding-bottom: 4px; font-weight: 500;">Torre/Depa</th>
                 <th style="padding-bottom: 4px; font-weight: 500;">Concepto</th>
                 <th style="padding-bottom: 4px; font-weight: 500; text-align: right;">Monto</th>
               </tr>
@@ -1880,6 +1885,75 @@ function generateAnnualPDFReport(overrideDeptoId, overrideYear) {
   showToast("PDF Generado", `Estado de cuenta descargado para el departamento ${dept.id}`, "success");
 }
 
+// --- GENERADOR DE RECIBO INDIVIDUAL PDF ---
+function generateReceiptPDF(txId, dept) {
+  const transactions = DB.getTransactions();
+  const tx = transactions.find(t => String(t.id) === String(txId));
+  if (!tx) {
+    console.error("Transacción no encontrada para recibo:", txId);
+    showToast("Error", "No se encontró la transacción para generar el recibo.", "error");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("p", "pt", "a5"); // A5 para recibos
+  
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let cursorY = 40;
+
+  // Header
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Jardines de Allende", pageWidth / 2, cursorY, { align: "center" });
+  
+  cursorY += 20;
+  doc.setFontSize(12);
+  doc.setTextColor(100, 116, 139);
+  doc.text(tx.tipo === "abono" ? "RECIBO DE PAGO" : "NOTA DE CARGO", pageWidth / 2, cursorY, { align: "center" });
+
+  cursorY += 40;
+  
+  // Info
+  doc.setFontSize(10);
+  doc.setTextColor(30, 41, 59);
+  doc.setFont("helvetica", "normal");
+  
+  doc.text(`Propiedad: ${dept.torre} - ${dept.numero} (${dept.id})`, 40, cursorY);
+  cursorY += 20;
+  doc.text(`Fecha de Transacción: ${tx.fecha}`, 40, cursorY);
+  cursorY += 20;
+  doc.text(`ID de Transacción: ${tx.id}`, 40, cursorY);
+  cursorY += 20;
+  doc.text(`Periodo: ${tx.mesCorrespondiente}`, 40, cursorY);
+  
+  cursorY += 30;
+  
+  // Divider
+  doc.setDrawColor(226, 232, 240);
+  doc.line(40, cursorY, pageWidth - 40, cursorY);
+  cursorY += 20;
+
+  // Detalles de Monto y Concepto
+  doc.setFont("helvetica", "bold");
+  doc.text("Concepto:", 40, cursorY);
+  doc.setFont("helvetica", "normal");
+  doc.text(tx.concepto, 100, cursorY);
+  
+  cursorY += 30;
+  
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("Importe Total:", 40, cursorY);
+  const color = tx.tipo === "abono" ? [16, 185, 129] : [239, 68, 68]; // Emerald o Red
+  doc.setTextColor(color[0], color[1], color[2]);
+  doc.text(formatCurrency(tx.monto), pageWidth - 40, cursorY, { align: "right" });
+
+  // Guardar y descargar
+  doc.save(`Recibo_${tx.tipo}_${tx.id}.pdf`);
+  showToast("Recibo Generado", "El recibo PDF ha sido descargado", "success");
+}
+
 // --- INICIALIZAR EVENTOS DE INTERFAZ (LISTENERS) ---
 function initEventListeners() {
   
@@ -2098,71 +2172,6 @@ function initEventListeners() {
 
   // Detalle depto - Generar PDF Estado de cuenta
   document.getElementById("btn-download-pdf").addEventListener("click", () => generateAnnualPDFReport(null, null));
-
-// --- GENERADOR DE RECIBO INDIVIDUAL PDF ---
-function generateReceiptPDF(txId, dept) {
-  const transactions = DB.getTransactions();
-  const tx = transactions.find(t => t.id === txId);
-  if (!tx) return;
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF("p", "pt", "a5"); // A5 para recibos
-  
-  const pageWidth = doc.internal.pageSize.getWidth();
-  let cursorY = 40;
-
-  // Header
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.setTextColor(30, 41, 59);
-  doc.text("Jardines de Allende", pageWidth / 2, cursorY, { align: "center" });
-  
-  cursorY += 20;
-  doc.setFontSize(12);
-  doc.setTextColor(100, 116, 139);
-  doc.text(tx.tipo === "abono" ? "RECIBO DE PAGO" : "NOTA DE CARGO", pageWidth / 2, cursorY, { align: "center" });
-
-  cursorY += 40;
-  
-  // Info
-  doc.setFontSize(10);
-  doc.setTextColor(30, 41, 59);
-  doc.setFont("helvetica", "normal");
-  
-  doc.text(`Propiedad: ${dept.torre} - ${dept.numero} (${dept.id})`, 40, cursorY);
-  cursorY += 20;
-  doc.text(`Fecha de Transacción: ${tx.fecha}`, 40, cursorY);
-  cursorY += 20;
-  doc.text(`ID de Transacción: ${tx.id}`, 40, cursorY);
-  cursorY += 20;
-  doc.text(`Periodo: ${tx.mesCorrespondiente}`, 40, cursorY);
-  
-  cursorY += 30;
-  
-  // Divider
-  doc.setDrawColor(226, 232, 240);
-  doc.line(40, cursorY, pageWidth - 40, cursorY);
-  cursorY += 20;
-
-  // Detalles de Monto y Concepto
-  doc.setFont("helvetica", "bold");
-  doc.text("Concepto:", 40, cursorY);
-  doc.setFont("helvetica", "normal");
-  doc.text(tx.concepto, 100, cursorY);
-  
-  cursorY += 30;
-  
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("Importe Total:", 40, cursorY);
-  const color = tx.tipo === "abono" ? [16, 185, 129] : [239, 68, 68]; // Emerald o Red
-  doc.setTextColor(color[0], color[1], color[2]);
-  doc.text(formatCurrency(tx.monto), pageWidth - 40, cursorY, { align: "right" });
-
-  // Guardar y descargar
-  doc.save(`Recibo_${tx.tipo}_${tx.id}.pdf`);
-  showToast("Recibo Generado", "El recibo PDF ha sido descargado", "success");
-}
 
   // 5. Lecturas de Agua - Guardar lecturas
   document.getElementById("btn-save-water-readings").addEventListener("click", saveWaterReadings);
@@ -3467,8 +3476,11 @@ function exportDestinoIncomeExcel() {
   showToast("Excel Exportado", "Reporte histórico de ingresos por destino descargado.", "success");
 }
 
-function applyCondominoRestrictions() {
-  if (window.currentUser && window.currentUser.role === 'condomino') {
+function applyRoleRestrictions() {
+  if (!window.currentUser) return;
+  const role = window.currentUser.role;
+  
+  if (role === 'condomino') {
     // 1. Hide administrative views from navigation menu
     document.querySelectorAll('.nav-menu a[data-view="agua"]').forEach(el => el.remove());
     document.querySelectorAll('.nav-menu a[data-view="importar"]').forEach(el => el.remove());
@@ -3501,6 +3513,30 @@ function applyCondominoRestrictions() {
       #table-ledger th:last-child,
       #table-ledger td:last-child {
         display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  if (role === 'admin-readonly') {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      /* Hide all edit/add/delete actions and print/excel exports */
+      .btn-edit-tx, .btn-delete-tx, .btn-print-receipt,
+      #btn-open-cargo-modal, #btn-open-abono-modal, #btn-edit-contact,
+      #btn-open-add-gasto, #btn-open-import-gastos,
+      #btn-print-resumen, #btn-report-pdf-individual, #btn-report-global-pdf,
+      #btn-download-pdf, #btn-export-excel-global, .btn-export-excel-tower,
+      .btn-export-excel-ledger, #btn-backup-db, #btn-confirm-reset,
+      .admin-only button, button[title*="Eliminar"], button[title*="Editar"], 
+      button[title*="Imprimir"] {
+        display: none !important;
+      }
+      
+      /* Disable inputs in the read-only view */
+      input:not([type="search"]), select, textarea {
+        pointer-events: none;
+        opacity: 0.8;
       }
     `;
     document.head.appendChild(style);
@@ -3553,9 +3589,11 @@ function renderResumenSaldosView() {
   }
 
   filteredDepts.forEach(d => {
-    // const saldoStr = d.saldo < 0.01 ? `-${formatCurrency(Math.abs(d.saldo))}` : formatCurrency(d.saldo);
-    const saldoStr = formatCurrency(d.saldo.toFixed(2));
-    const saldoColor = d.saldo.toFixed(2) < 0.0 ? "text-red font-bold" : "text-emerald font-bold";
+    const saldoStr = formatCurrency(d.saldo);
+    let saldoColor = "text-emerald font-bold";
+    if (d.saldo < -0.01) saldoColor = "text-red font-bold";
+    else if (Math.abs(d.saldo) <= 0.01) saldoColor = "text-slate font-bold";
+
     const convenioBadge = d.conConvenio 
       ? `<span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); font-size: 0.7rem; padding: 2px 6px; text-transform: uppercase;">Con Convenio</span>`
       : `<span class="badge" style="background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); font-size: 0.7rem; padding: 2px 6px; text-transform: uppercase;">Sin Convenio</span>`;
@@ -4416,8 +4454,8 @@ window.addEventListener("DOMContentLoaded", async () => {
     };
   }
 
-  // Apply condomino limits and navigation hiding
-  applyCondominoRestrictions();
+  // Apply role limits (condomino or admin-readonly)
+  applyRoleRestrictions();
 
   // Inicialización de la Base de Datos
   initDatabase();

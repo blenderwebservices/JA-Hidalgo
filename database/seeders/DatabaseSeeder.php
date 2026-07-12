@@ -227,6 +227,13 @@ class DatabaseSeeder extends Seeder
         ]);
 
         User::create([
+            'name' => 'Admin Lectura',
+            'email' => 'lectura@jardineshidalgo.com',
+            'password' => Hash::make('password'),
+            'role' => 'admin-readonly',
+        ]);
+
+        User::create([
             'name' => 'Condómino de Prueba',
             'email' => 'condomino@jardineshidalgo.com',
             'password' => Hash::make('password'),
