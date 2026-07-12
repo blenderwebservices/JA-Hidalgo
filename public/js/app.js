@@ -26,7 +26,10 @@ let appState = {
   editingTxId: null,
   chartExpensesMonthlyInstance: null,
   chartExpensesGroupInstance: null,
-  expensesExcelImportData: null
+  expensesExcelImportData: null,
+  ledgerSortBy: 'fecha',
+  ledgerSortDesc: true,
+  ledgerGroupBy: ''
 };
 
 // --- BASE DE DATOS LOCAL (API / DB SYNC) ---
@@ -1065,19 +1068,61 @@ function renderDeptoDetailView() {
     filteredTransactions = filteredTransactions.filter(t => t.fecha <= filterTo);
   }
 
+  // Aplicar ordenamiento
+  const sortBy = appState.ledgerSortBy || 'fecha';
+  const sortDesc = appState.ledgerSortDesc;
+  
+  filteredTransactions.sort((a, b) => {
+    let valA, valB;
+    switch(sortBy) {
+      case 'fecha':
+        valA = a.fecha; valB = b.fecha; break;
+      case 'concepto':
+        valA = a.concepto.toLowerCase(); valB = b.concepto.toLowerCase(); break;
+      case 'mes':
+        valA = a.mesCorrespondiente || ''; valB = b.mesCorrespondiente || ''; break;
+      case 'banco':
+        valA = a.destinoAbono || ''; valB = b.destinoAbono || ''; break;
+      case 'cargo':
+        valA = a.tipo === 'cargo' ? a.monto : -1; valB = b.tipo === 'cargo' ? b.monto : -1; break;
+      case 'abono':
+        valA = a.tipo === 'abono' ? a.monto : -1; valB = b.tipo === 'abono' ? b.monto : -1; break;
+      case 'saldo':
+        valA = a.accumulatedBalance; valB = b.accumulatedBalance; break;
+      default:
+        valA = a.fecha; valB = b.fecha;
+    }
+    
+    if (valA < valB) return sortDesc ? 1 : -1;
+    if (valA > valB) return sortDesc ? -1 : 1;
+    if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha);
+    return a.id.localeCompare(b.id);
+  });
+
+  // Actualizar iconos de ordenamiento en los encabezados
+  document.querySelectorAll('#table-ledger th.sortable-header').forEach(th => {
+    const icon = th.querySelector('.sort-icon');
+    if (icon) icon.innerHTML = '';
+    if (th.getAttribute('data-sort') === sortBy) {
+      if (icon) {
+        icon.innerHTML = sortDesc 
+          ? '<i data-lucide="chevron-down" style="width:14px;height:14px;vertical-align:middle;display:inline-block;margin-left:4px;"></i>' 
+          : '<i data-lucide="chevron-up" style="width:14px;height:14px;vertical-align:middle;display:inline-block;margin-left:4px;"></i>';
+      }
+    }
+  });
+
   const ledgerBody = document.querySelector("#table-ledger tbody");
   ledgerBody.innerHTML = "";
 
   if (filteredTransactions.length === 0) {
     ledgerBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">No se registran transacciones para los filtros seleccionados.</td></tr>`;
   } else {
-    filteredTransactions.forEach(t => {
+    const renderRow = (t) => {
       const isAbono = t.tipo === "abono";
       const tr = document.createElement("tr");
       tr.className = isAbono ? "abono-row" : "cargo-row";
-      
       const balanceClass = t.accumulatedBalance < 0 ? "text-red font-bold" : "text-emerald font-bold";
-
       tr.innerHTML = `
         <td>${t.fecha}</td>
         <td>${t.concepto}</td>
@@ -1094,8 +1139,40 @@ function renderDeptoDetailView() {
           </div>
         </td>
       `;
-      ledgerBody.appendChild(tr);
-    });
+      return tr;
+    };
+
+    const groupBy = appState.ledgerGroupBy;
+    if (groupBy) {
+      const grouped = {};
+      filteredTransactions.forEach(t => {
+        let key = '';
+        if (groupBy === 'concepto') key = t.concepto;
+        else if (groupBy === 'mes') key = formatMonthES(t.mesCorrespondiente) || 'Sin mes';
+        else if (groupBy === 'banco') key = t.destinoAbono || 'Sin destino/banco';
+        
+        if (!grouped[key]) grouped[key] = { items: [], totalCargo: 0, totalAbono: 0 };
+        grouped[key].items.push(t);
+        if (t.tipo === 'cargo') grouped[key].totalCargo += t.monto;
+        if (t.tipo === 'abono') grouped[key].totalAbono += t.monto;
+      });
+
+      for (const [groupKey, groupData] of Object.entries(grouped)) {
+        const trGroup = document.createElement("tr");
+        trGroup.className = "group-header-row";
+        trGroup.style.backgroundColor = "#f1f5f9";
+        trGroup.innerHTML = `
+          <td colspan="4" style="font-weight: bold; color: #334155;"><i data-lucide="folder" style="width:14px;height:14px;margin-right:6px;vertical-align:middle;"></i>${groupKey}</td>
+          <td class="text-right font-bold text-red" style="font-size:0.9rem;">${formatCurrency(groupData.totalCargo)}</td>
+          <td class="text-right font-bold text-emerald" style="font-size:0.9rem;">${formatCurrency(groupData.totalAbono)}</td>
+          <td colspan="2"></td>
+        `;
+        ledgerBody.appendChild(trGroup);
+        groupData.items.forEach(t => ledgerBody.appendChild(renderRow(t)));
+      }
+    } else {
+      filteredTransactions.forEach(t => ledgerBody.appendChild(renderRow(t)));
+    }
 
     // Registrar handlers para botones de acción del ledger
     ledgerBody.querySelectorAll(".btn-edit-tx").forEach(btn => {
@@ -2307,6 +2384,30 @@ function initEventListeners() {
       filterLedgerByDate();
     });
   }
+
+  // Sorting ledger headers
+  document.querySelectorAll('#table-ledger th.sortable-header').forEach(th => {
+    th.addEventListener("click", (e) => {
+      const sortKey = e.currentTarget.getAttribute("data-sort");
+      if (appState.ledgerSortBy === sortKey) {
+        appState.ledgerSortDesc = !appState.ledgerSortDesc;
+      } else {
+        appState.ledgerSortBy = sortKey;
+        appState.ledgerSortDesc = true; // default descending on new col
+      }
+      renderDeptoDetailView();
+    });
+  });
+
+  // Grouping ledger selector
+  const groupBySelect = document.getElementById("ledger-group-by");
+  if (groupBySelect) {
+    groupBySelect.addEventListener("change", (e) => {
+      appState.ledgerGroupBy = e.target.value;
+      renderDeptoDetailView();
+    });
+  }
+
   const btnExportLedgerExcel = document.getElementById("btn-export-ledger-excel");
   if (btnExportLedgerExcel) {
     btnExportLedgerExcel.addEventListener("click", () => {

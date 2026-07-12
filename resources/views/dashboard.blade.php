@@ -665,6 +665,15 @@
                   <input type="date" id="ledger-filter-to">
                   <button class="btn btn-secondary" id="btn-apply-ledger-filter" style="padding: 6px 12px; font-size: 0.8rem;">Filtrar</button>
                   <button class="btn btn-secondary" id="btn-clear-ledger-filter" style="padding: 6px 12px; font-size: 0.8rem;">Limpiar</button>
+                  
+                  <div style="border-left: 1px solid #e2e8f0; height: 24px; margin: 0 8px;"></div>
+                  <label for="ledger-group-by">Agrupar por:</label>
+                  <select id="ledger-group-by" style="padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem;">
+                    <option value="">Ninguno</option>
+                    <option value="concepto">Concepto</option>
+                    <option value="mes">Mes Correspondiente</option>
+                    <option value="banco">Destino / Banco</option>
+                  </select>
                 </div>
                 <button class="btn btn-secondary" id="btn-export-ledger-excel" style="margin-left: auto; display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.8rem;">
                   <i data-lucide="file-spreadsheet" class="excel-blue" style="width: 14px; height: 14px;"></i> Exportar Excel
@@ -675,13 +684,13 @@
                 <table class="ledger-table" id="table-ledger">
                   <thead>
                     <tr>
-                      <th>Fecha</th>
-                      <th>Concepto</th>
-                      <th>Mes Corresp.</th>
-                      <th>Destino / Banco</th>
-                      <th class="text-right">Cargo</th>
-                      <th class="text-right">Abono</th>
-                      <th class="text-right">Saldo Acum.</th>
+                      <th class="sortable-header" data-sort="fecha" style="cursor: pointer; user-select: none;">Fecha <span class="sort-icon"></span></th>
+                      <th class="sortable-header" data-sort="concepto" style="cursor: pointer; user-select: none;">Concepto <span class="sort-icon"></span></th>
+                      <th class="sortable-header" data-sort="mes" style="cursor: pointer; user-select: none;">Mes Corresp. <span class="sort-icon"></span></th>
+                      <th class="sortable-header" data-sort="banco" style="cursor: pointer; user-select: none;">Destino / Banco <span class="sort-icon"></span></th>
+                      <th class="sortable-header text-right" data-sort="cargo" style="cursor: pointer; user-select: none;">Cargo <span class="sort-icon"></span></th>
+                      <th class="sortable-header text-right" data-sort="abono" style="cursor: pointer; user-select: none;">Abono <span class="sort-icon"></span></th>
+                      <th class="sortable-header text-right" data-sort="saldo" style="cursor: pointer; user-select: none;">Saldo Acum. <span class="sort-icon"></span></th>
                       <th class="text-center" style="width: 80px;">Acciones</th>
                     </tr>
                   </thead>
