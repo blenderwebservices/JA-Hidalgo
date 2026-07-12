@@ -1899,20 +1899,36 @@ function generateReceiptPDF(txId, dept) {
   const doc = new jsPDF("p", "pt", "a5"); // A5 para recibos
   
   const pageWidth = doc.internal.pageSize.getWidth();
-  let cursorY = 40;
+  let cursorY = 35;
 
-  // Header
-  doc.setFont("helvetica", "bold");
+  // Header: Logo e Información
+  const logoImg = document.getElementById("app-logo");
+  if (logoImg) {
+    try {
+      doc.addImage(logoImg, "PNG", 40, cursorY, 40, 40);
+    } catch (e) {
+      console.warn("No se pudo cargar la imagen del logo en el PDF:", e);
+    }
+  }
+
+  doc.setTextColor(6, 78, 59); // Verde esmeralda oscuro
+  doc.setFont("Helvetica", "bold");
   doc.setFontSize(16);
-  doc.setTextColor(30, 41, 59);
-  doc.text("Jardines de Allende", pageWidth / 2, cursorY, { align: "center" });
+  doc.text("Jardines de Allende Hidalgo", 90, cursorY + 17);
   
-  cursorY += 20;
+  doc.setFont("Helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(217, 119, 6);
+  doc.text("ADMINISTRACIÓN DE CONDOMINIO", 90, cursorY + 33);
+  
+  cursorY += 70;
+
   doc.setFontSize(12);
   doc.setTextColor(100, 116, 139);
+  doc.setFont("helvetica", "bold");
   doc.text(tx.tipo === "abono" ? "RECIBO DE PAGO" : "NOTA DE CARGO", pageWidth / 2, cursorY, { align: "center" });
 
-  cursorY += 40;
+  cursorY += 30;
   
   // Info
   doc.setFontSize(10);
@@ -1924,10 +1940,9 @@ function generateReceiptPDF(txId, dept) {
   doc.text(`Fecha de Transacción: ${tx.fecha}`, 40, cursorY);
   cursorY += 20;
   doc.text(`ID de Transacción: ${tx.id}`, 40, cursorY);
-  cursorY += 20;
-  doc.text(`Periodo: ${tx.mesCorrespondiente}`, 40, cursorY);
+  // Periodo eliminado según requerimiento
   
-  cursorY += 30;
+  cursorY += 20;
   
   // Divider
   doc.setDrawColor(226, 232, 240);
@@ -1938,16 +1953,70 @@ function generateReceiptPDF(txId, dept) {
   doc.setFont("helvetica", "bold");
   doc.text("Concepto:", 40, cursorY);
   doc.setFont("helvetica", "normal");
-  doc.text(tx.concepto, 100, cursorY);
+  // Dividir texto para evitar desbordes
+  const conceptoLines = doc.splitTextToSize(tx.concepto, pageWidth - 140);
+  doc.text(conceptoLines, 100, cursorY);
   
-  cursorY += 30;
+  cursorY += (15 * conceptoLines.length) + 15;
   
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("Importe Total:", 40, cursorY);
-  const color = tx.tipo === "abono" ? [16, 185, 129] : [239, 68, 68]; // Emerald o Red
-  doc.setTextColor(color[0], color[1], color[2]);
-  doc.text(formatCurrency(tx.monto), pageWidth - 40, cursorY, { align: "right" });
+  // Cálculo de saldos para la tabla
+  const deptoTransactions = transactions.filter(t => t.deptoId === dept.id);
+  // Ordenar cronológicamente
+  deptoTransactions.sort((a, b) => {
+    if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha);
+    if (a.tipo !== b.tipo) return a.tipo === 'cargo' ? -1 : 1;
+    return String(a.id).localeCompare(String(b.id));
+  });
+
+  let saldoAlMomento = 0;
+  for (const t of deptoTransactions) {
+    if (t.tipo === "abono") saldoAlMomento += t.monto;
+    else if (t.tipo === "cargo") saldoAlMomento -= t.monto;
+    if (String(t.id) === String(txId)) break;
+  }
+  
+  // Saldo final actual
+  const saldoFinal = calculateDeptoBalance(dept.id, transactions);
+  
+  const today = new Date();
+  const dateOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
+  const dateStr = today.toLocaleDateString('es-MX', dateOptions);
+  
+  const amountLabel = tx.tipo === "abono" ? "Su pago, gracias:" : "Cargo registrado:";
+
+  doc.autoTable({
+    startY: cursorY,
+    margin: { left: 40, right: 40 },
+    head: [],
+    body: [
+      [amountLabel, formatCurrency(tx.monto)],
+      ["Saldo posterior al pago:", formatCurrency(saldoAlMomento)],
+      [`Saldo final [${dateStr}]:`, formatCurrency(saldoFinal)]
+    ],
+    theme: 'plain',
+    styles: {
+      fontSize: 11,
+      cellPadding: 6,
+      textColor: [30, 41, 59]
+    },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 'auto' },
+      1: { halign: 'right', fontStyle: 'bold' }
+    },
+    didParseCell: function(data) {
+      if (data.column.index === 1) {
+        if (data.row.index === 0) {
+          data.cell.styles.textColor = tx.tipo === "abono" ? [16, 185, 129] : [239, 68, 68];
+        } else {
+          // Saldos negativos en rojo
+          const valStr = data.cell.raw;
+          if (valStr && valStr.includes("-")) {
+            data.cell.styles.textColor = [239, 68, 68];
+          }
+        }
+      }
+    }
+  });
 
   // Guardar y descargar
   doc.save(`Recibo_${tx.tipo}_${tx.id}.pdf`);
