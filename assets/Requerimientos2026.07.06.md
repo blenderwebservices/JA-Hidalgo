@@ -29,3 +29,11 @@ Su pago, gracias / Cargo registrado: El importe de la transacción generada (en 
 Saldo posterior al pago: El saldo exacto de la propiedad en el momento que se registró el recibo.
 Saldo final [fecha de hoy]: El saldo acumulado actual de la propiedad.
 Los saldos deudores (negativos) se mostrarán automáticamente en rojo en la tabla. Ahora los recibos lucirán más completos y con el estado de cuenta claro en cada emisión.
+
+ordenamiento y agrupación solicitados para el historial de transacciones. He creado un resumen de los cambios en el documento walkthrough.md para que lo revises.
+
+Puntos clave implementados:
+
+El historial ahora se muestra en formato descendente por fecha por defecto.
+Agregué capacidades de ordenamiento por columnas al hacer clic en los encabezados (incluyendo iconos para ver la dirección del orden).
+Incluí una lista desplegable en la barra de herramientas para agrupar las filas ya sea por Concepto, Mes Correspondiente o Destino/Banco, calculando los respectivos subtotales por grupo.
