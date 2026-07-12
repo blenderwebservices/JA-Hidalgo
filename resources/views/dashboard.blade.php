@@ -178,6 +178,9 @@
         <button class="mobile-toggle-btn">
           <i data-lucide="menu"></i>
         </button>
+        <button class="desktop-toggle-btn" title="Contraer/Expandir menú">
+          <i data-lucide="menu"></i>
+        </button>
         <div class="header-title">
           <h2 id="view-title">Dashboard</h2>
           <p id="view-subtitle" class="text-muted">Resumen general de las finanzas del condominio</p>

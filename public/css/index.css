@@ -1660,6 +1660,68 @@ tr:hover td {
 }
 
 /* ==========================================================================
+   SIDEBAR COMPRESSED STATE (TABLET/PC)
+   ========================================================================== */
+.app-container.sidebar-compressed {
+  grid-template-columns: 80px 1fr;
+}
+
+.app-container.sidebar-compressed .sidebar {
+  padding: 24px 12px;
+}
+
+.app-container.sidebar-compressed .brand {
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+.app-container.sidebar-compressed .brand-text {
+  display: none;
+}
+
+.app-container.sidebar-compressed .brand-logo {
+  margin-right: 0 !important;
+}
+
+.app-container.sidebar-compressed .nav-item {
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.app-container.sidebar-compressed .nav-item span {
+  display: none;
+}
+
+.app-container.sidebar-compressed .nav-item i {
+  margin: 0;
+}
+
+.app-container.sidebar-compressed .admin-profile {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.app-container.sidebar-compressed .profile-info {
+  display: none;
+}
+
+.desktop-toggle-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+}
+
+.desktop-toggle-btn:hover {
+  color: var(--gold-primary);
+}
+
+/* ==========================================================================
    RESPONSIVE DESIGN BREAKPOINTS
    ========================================================================== */
 @media (max-width: 991px) {
@@ -1681,6 +1743,10 @@ tr:hover td {
   
   .mobile-toggle-btn {
     display: block;
+  }
+  
+  .desktop-toggle-btn {
+    display: none !important;
   }
   
   .top-header {

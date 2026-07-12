@@ -1978,6 +1978,15 @@ function initEventListeners() {
     });
   }
 
+  // Desktop Toggle
+  const desktopToggle = document.querySelector(".desktop-toggle-btn");
+  const appContainer = document.querySelector(".app-container");
+  if (desktopToggle && appContainer) {
+    desktopToggle.addEventListener("click", () => {
+      appContainer.classList.toggle("sidebar-compressed");
+    });
+  }
+
   // Clic fuera del sidebar móvil lo cierra
   document.addEventListener("click", (e) => {
     if (window.innerWidth <= 991) {
