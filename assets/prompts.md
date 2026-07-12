@@ -164,3 +164,10 @@ Verificación de la Pizarra de Avisos:
 Publicar un aviso en el panel de Filament y verificar que aparezca inmediatamente en el Dashboard de todos los usuarios.
 
 
+11julio2026
+1. en el recibo de cargo y abono coloca un encabezado con logotipo y titulo como lo has hecho en otros reportes. 
+2. Quita el periodo de pago.
+3. Coloca una tabla:
+Su pago, gracias:  [el pago registrado]
+Saldo posterior al pago: [Saldo en el momento del pago]
+Saldo final [fecha de hoy]: [Saldo final actual]

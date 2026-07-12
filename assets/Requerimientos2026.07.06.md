@@ -19,3 +19,13 @@ Confirma en el readme.md que tipo de respaldo haces y como funciona la restaurac
 
 Es importante confirma la vista para usuarios condominos y para usuarios admin-solo lectura. Documentalo en el readme.md .
 
+
+He actualizado el generador del recibo individual en formato PDF (public/js/app.js) para cumplir con todos los requerimientos:
+
+Encabezado Mejorado: Se agregó el logotipo y el título del condominio ("Jardines de Allende Hidalgo" - "ADMINISTRACIÓN DE CONDOMINIO") alineado de la misma manera que en el reporte del Estado de Cuenta.
+Eliminación del Periodo: Se removió la línea que mostraba el periodo de pago (mes correspondiente) para simplificar la información del recibo.
+Tabla de Saldos: Se implementó una tabla limpia en la parte inferior del recibo utilizando jsPDF-AutoTable que muestra:
+Su pago, gracias / Cargo registrado: El importe de la transacción generada (en verde si es abono o rojo si es cargo).
+Saldo posterior al pago: El saldo exacto de la propiedad en el momento que se registró el recibo.
+Saldo final [fecha de hoy]: El saldo acumulado actual de la propiedad.
+Los saldos deudores (negativos) se mostrarán automáticamente en rojo en la tabla. Ahora los recibos lucirán más completos y con el estado de cuenta claro en cada emisión.
