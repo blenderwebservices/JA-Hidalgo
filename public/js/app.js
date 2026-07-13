@@ -2085,7 +2085,7 @@ function generateReceiptPDF(txId, dept) {
       ["Saldo posterior a este movimiento:", formatCurrency(saldoAlMomento)],
       ["", ""],
       ["", ""],
-      [`Saldo final [${dateStr}]:`, formatCurrency(saldoFinal)]
+      [`Saldo al día de hoy [${dateStr}]:`, formatCurrency(saldoFinal)]
     ],
     theme: 'plain',
     styles: {
