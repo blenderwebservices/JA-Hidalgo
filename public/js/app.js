@@ -1132,13 +1132,13 @@ function renderDeptoDetailView() {
       const isAbono = t.tipo === "abono";
       const tr = document.createElement("tr");
       tr.className = isAbono ? "abono-row" : "cargo-row";
-      const balanceClass = t.accumulatedBalance < 0 ? "text-red font-bold" : "text-emerald font-bold";
+      const balanceClass = t.accumulatedBalance < 0 ? "text-red font-bold" : "font-bold";
       tr.innerHTML = `
         <td>${t.fecha}</td>
         <td>${t.concepto}</td>
         <td>${formatMonthES(t.mesCorrespondiente)}</td>
         <td>${t.destinoAbono || '-'}</td>
-        <td class="text-right ${!isAbono ? 'monto-cargo font-medium' : 'text-muted'}">${!isAbono ? formatCurrency(t.monto) : '-'}</td>
+        <td class="text-right ${!isAbono ? 'monto-cargo text-red font-medium' : 'text-muted'}">${!isAbono ? formatCurrency(t.monto) : '-'}</td>
         <td class="text-right ${isAbono ? 'monto-abono' : 'text-muted'}">${isAbono ? formatCurrency(t.monto) : '-'}</td>
         <td class="text-right ${balanceClass}">${t.accumulatedBalance < 0 ? '-' : ''}${formatCurrency(Math.abs(t.accumulatedBalance))}</td>
         <td class="text-center">
