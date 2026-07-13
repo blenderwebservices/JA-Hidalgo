@@ -1095,8 +1095,18 @@ function renderDeptoDetailView() {
     
     if (valA < valB) return sortDesc ? 1 : -1;
     if (valA > valB) return sortDesc ? -1 : 1;
-    if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha);
-    return a.id.localeCompare(b.id);
+    
+    // Si los valores son iguales, aplicar el desempate cronológico estricto
+    let tieBreaker = 0;
+    if (a.fecha !== b.fecha) {
+      tieBreaker = a.fecha.localeCompare(b.fecha);
+    } else if (a.tipo !== b.tipo) {
+      tieBreaker = a.tipo === 'cargo' ? -1 : 1;
+    } else {
+      tieBreaker = String(a.id).localeCompare(String(b.id));
+    }
+    
+    return sortDesc ? -tieBreaker : tieBreaker;
   });
 
   // Actualizar iconos de ordenamiento en los encabezados
