@@ -2046,7 +2046,11 @@ function generateReceiptPDF(txId, dept) {
   });
 
   let saldoAlMomento = 0;
+  let saldoPrevio = 0;
   for (const t of deptoTransactions) {
+    if (String(t.id) === String(txId)) {
+      saldoPrevio = saldoAlMomento;
+    }
     if (t.tipo === "abono") saldoAlMomento += t.monto;
     else if (t.tipo === "cargo") saldoAlMomento -= t.monto;
     if (String(t.id) === String(txId)) break;
@@ -2059,15 +2063,18 @@ function generateReceiptPDF(txId, dept) {
   const dateOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
   const dateStr = today.toLocaleDateString('es-MX', dateOptions);
   
-  const amountLabel = tx.tipo === "abono" ? "Su pago, gracias:" : "Cargo registrado:";
+  const amountLabel = tx.tipo === "abono" ? `Su pago, gracias [${tx.fecha}]:` : `Cargo registrado [${tx.fecha}]:`;
 
   doc.autoTable({
     startY: cursorY,
     margin: { left: 40, right: 40 },
     head: [],
     body: [
+      [`Saldo previo al [${tx.fecha}]:`, formatCurrency(saldoPrevio)],
       [amountLabel, formatCurrency(tx.monto)],
-      ["Saldo posterior al pago:", formatCurrency(saldoAlMomento)],
+      ["Saldo posterior a este movimiento:", formatCurrency(saldoAlMomento)],
+      ["", ""],
+      ["", ""],
       [`Saldo final [${dateStr}]:`, formatCurrency(saldoFinal)]
     ],
     theme: 'plain',
@@ -2082,12 +2089,12 @@ function generateReceiptPDF(txId, dept) {
     },
     didParseCell: function(data) {
       if (data.column.index === 1) {
-        if (data.row.index === 0) {
+        if (data.row.index === 1) {
           data.cell.styles.textColor = tx.tipo === "abono" ? [16, 185, 129] : [239, 68, 68];
         } else {
           // Saldos negativos en rojo
           const valStr = data.cell.raw;
-          if (valStr && valStr.includes("-")) {
+          if (valStr && typeof valStr === 'string' && valStr.includes("-")) {
             data.cell.styles.textColor = [239, 68, 68];
           }
         }
