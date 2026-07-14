@@ -151,10 +151,12 @@
           <i data-lucide="settings"></i>
           <span>Configuración</span>
         </a>
+        @if(auth()->user()->role !== 'condomino')
         <a href="{{ url('/admin') }}" class="nav-item" style="color: var(--gold-primary); border-top: 1px solid var(--border-glass); margin-top: 15px; padding-top: 15px;">
           <i data-lucide="shield-check"></i>
           <span>Panel Admin (Principal)</span>
         </a>
+        @endif
       </nav>
       <div class="sidebar-footer">
         <div class="admin-profile" style="cursor: pointer;" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" title="Cerrar Sesión">
@@ -1129,13 +1131,9 @@
             <div class="form-group" id="group-abono-destino">
               <label for="abono-destino">Destino del Dinero:</label>
               <select id="abono-destino" required>
-                <option value="Banorte Miguel">Banorte Miguel</option>
-                <option value="NU Miguel">NU Miguel</option>
-                <option value="Cuenta Carlos">Cuenta Carlos</option>
-                <option value="Carlos no Reportado">Carlos no Reportado</option>
-                <option value="Ajuste por Acuerdo">Ajuste por Acuerdo</option>
-                <option value="Efectivo">Efectivo</option>
-                <option value="Otro">Otro</option>
+                @foreach(\App\Models\MoneyDestination::where('administracion_actual', true)->orderBy('nombre')->get() as $destino)
+                  <option value="{{ $destino->nombre }}">{{ $destino->nombre }}</option>
+                @endforeach
               </select>
             </div>
             <div class="form-group span-2">
@@ -1180,13 +1178,9 @@
               <label for="edit-tx-destino">Destino (si aplica):</label>
               <select id="edit-tx-destino">
                 <option value="">Ninguno / Cargo</option>
-                <option value="Banorte Miguel">Banorte Miguel</option>
-                <option value="NU Miguel">NU Miguel</option>
-                <option value="Cuenta Carlos">Cuenta Carlos</option>
-                <option value="Carlos no Reportado">Carlos no Reportado</option>
-                <option value="Ajuste por Acuerdo">Ajuste por Acuerdo</option>
-                <option value="Efectivo">Efectivo</option>
-                <option value="Otro">Otro</option>
+                @foreach(\App\Models\MoneyDestination::orderBy('nombre')->get() as $destino)
+                  <option value="{{ $destino->nombre }}">{{ $destino->nombre }}</option>
+                @endforeach
               </select>
             </div>
             <div class="form-group span-2">
