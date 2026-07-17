@@ -4721,3 +4721,67 @@ window.addEventListener("DOMContentLoaded", async () => {
   // Cargar vista inicial (Dashboard)
   navigateTo("dashboard");
 });
+
+window.addExpenseGroup = function() {
+  const name = prompt("Nombre del nuevo Grupo de Gasto:");
+  if (!name) return;
+  const groups = DB.getExpenseGroups();
+  const maxId = groups.reduce((max, g) => Math.max(max, g.id), 0);
+  const newGroup = { id: maxId + 1, nombre: name };
+  groups.push(newGroup);
+  DB.saveExpenseGroups(groups);
+  populateAddExpenseModalSelects();
+  document.getElementById("add-expense-group").value = newGroup.id;
+  document.getElementById("add-expense-group").dispatchEvent(new Event('change'));
+}
+window.deleteExpenseGroup = function() {
+  const select = document.getElementById("add-expense-group");
+  const id = parseInt(select.value);
+  if (!id) return alert("Selecciona un grupo primero");
+  if (!confirm("¿Seguro que deseas eliminar este grupo? Los gastos asociados podrían quedar sin grupo.")) return;
+  const groups = DB.getExpenseGroups().filter(g => g.id !== id);
+  DB.saveExpenseGroups(groups);
+  populateAddExpenseModalSelects();
+}
+window.addExpenseSubgroup = function() {
+  const groupId = parseInt(document.getElementById("add-expense-group").value);
+  if (!groupId) return alert("Selecciona un Grupo de Gasto primero");
+  const name = prompt("Nombre del nuevo Subgrupo:");
+  if (!name) return;
+  const subgroups = DB.getExpenseSubgroups();
+  const maxId = subgroups.reduce((max, s) => Math.max(max, s.id), 0);
+  const newSub = { id: maxId + 1, groupId: groupId, nombre: name };
+  subgroups.push(newSub);
+  DB.saveExpenseSubgroups(subgroups);
+  document.getElementById("add-expense-group").dispatchEvent(new Event('change'));
+  setTimeout(() => { document.getElementById("add-expense-subgroup").value = newSub.id; }, 50);
+}
+window.deleteExpenseSubgroup = function() {
+  const select = document.getElementById("add-expense-subgroup");
+  const id = parseInt(select.value);
+  if (!id) return alert("Selecciona un subgrupo primero");
+  if (!confirm("¿Seguro que deseas eliminar este subgrupo?")) return;
+  const subgroups = DB.getExpenseSubgroups().filter(s => s.id !== id);
+  DB.saveExpenseSubgroups(subgroups);
+  document.getElementById("add-expense-group").dispatchEvent(new Event('change'));
+}
+window.addPaymentMethod = function() {
+  const name = prompt("Nombre de la nueva Forma de Pago:");
+  if (!name) return;
+  const methods = DB.getPaymentMethods();
+  const maxId = methods.reduce((max, m) => Math.max(max, m.id), 0);
+  const newMethod = { id: maxId + 1, nombre: name };
+  methods.push(newMethod);
+  DB.savePaymentMethods(methods);
+  populateAddExpenseModalSelects();
+  document.getElementById("add-expense-payment-method").value = newMethod.id;
+}
+window.deletePaymentMethod = function() {
+  const select = document.getElementById("add-expense-payment-method");
+  const id = parseInt(select.value);
+  if (!id) return alert("Selecciona una forma de pago primero");
+  if (!confirm("¿Seguro que deseas eliminar esta forma de pago?")) return;
+  const methods = DB.getPaymentMethods().filter(m => m.id !== id);
+  DB.savePaymentMethods(methods);
+  populateAddExpenseModalSelects();
+}

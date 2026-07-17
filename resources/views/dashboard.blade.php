@@ -1265,27 +1265,39 @@
               <label for="add-expense-amount">Monto ($):</label>
               <input type="number" id="add-expense-amount" step="0.01" min="0.01" required placeholder="0.00">
             </div>
-            <div class="form-group">
+            <div class="form-group span-2">
               <label for="add-expense-group">Grupo de Gasto:</label>
-              <select id="add-expense-group" required style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-glass); color: #fff;">
-                <option value="">Selecciona grupo</option>
-              </select>
+              <div style="display: flex; gap: 5px;">
+                <select id="add-expense-group" required style="flex: 1; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-glass); color: #fff;">
+                  <option value="">Selecciona grupo</option>
+                </select>
+                <button type="button" class="btn btn-secondary" style="padding: 0 10px;" onclick="addExpenseGroup()"><i data-lucide="plus" style="width:18px;height:18px;"></i></button>
+                <button type="button" class="btn btn-danger" style="padding: 0 10px;" onclick="deleteExpenseGroup()"><i data-lucide="trash-2" style="width:18px;height:18px;"></i></button>
+              </div>
             </div>
-            <div class="form-group">
+            <div class="form-group span-2">
               <label for="add-expense-subgroup">Subgrupo de Gasto:</label>
-              <select id="add-expense-subgroup" required style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-glass); color: #fff;">
-                <option value="">Selecciona subgrupo</option>
-              </select>
+              <div style="display: flex; gap: 5px;">
+                <select id="add-expense-subgroup" required style="flex: 1; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-glass); color: #fff;">
+                  <option value="">Selecciona subgrupo</option>
+                </select>
+                <button type="button" class="btn btn-secondary" style="padding: 0 10px;" onclick="addExpenseSubgroup()"><i data-lucide="plus" style="width:18px;height:18px;"></i></button>
+                <button type="button" class="btn btn-danger" style="padding: 0 10px;" onclick="deleteExpenseSubgroup()"><i data-lucide="trash-2" style="width:18px;height:18px;"></i></button>
+              </div>
             </div>
             <div class="form-group">
               <label for="add-expense-provider">Proveedor:</label>
               <input type="text" id="add-expense-provider" required placeholder="Nombre o Razón Social">
             </div>
-            <div class="form-group">
+            <div class="form-group span-2">
               <label for="add-expense-payment-method">Forma de Pago:</label>
-              <select id="add-expense-payment-method" required style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-glass); color: #fff;">
-                <option value="">Selecciona forma</option>
-              </select>
+              <div style="display: flex; gap: 5px;">
+                <select id="add-expense-payment-method" required style="flex: 1; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-glass); color: #fff;">
+                  <option value="">Selecciona forma</option>
+                </select>
+                <button type="button" class="btn btn-secondary" style="padding: 0 10px;" onclick="addPaymentMethod()"><i data-lucide="plus" style="width:18px;height:18px;"></i></button>
+                <button type="button" class="btn btn-danger" style="padding: 0 10px;" onclick="deletePaymentMethod()"><i data-lucide="trash-2" style="width:18px;height:18px;"></i></button>
+              </div>
             </div>
             <div class="form-group span-2" style="display: flex; align-items: center; gap: 10px;">
               <input type="checkbox" id="add-expense-soporte" style="width: 20px; height: 20px;">
