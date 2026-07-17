@@ -115,6 +115,7 @@ class ApiController extends Controller
                 'proveedor' => $e->proveedor,
                 'paymentMethodId' => $e->payment_method_id,
                 'documento' => $e->documento ? asset('storage/' . $e->documento) : null,
+                'soporte' => (bool)$e->soporte,
             ];
         });
 
@@ -267,6 +268,12 @@ class ApiController extends Controller
             \App\Models\Expense::truncate();
             $insertData = [];
             foreach ($data as $e) {
+                $docPath = $e['documento'] ?? null;
+                if ($docPath && strpos($docPath, '/storage/') !== false) {
+                    $parts = explode('/storage/', $docPath);
+                    $docPath = end($parts);
+                }
+
                 $insertData[] = [
                     'id' => $e['id'],
                     'fecha' => $e['fecha'],
@@ -276,7 +283,8 @@ class ApiController extends Controller
                     'expense_subgroup_id' => $e['subgroupId'] ?? null,
                     'proveedor' => $e['proveedor'],
                     'payment_method_id' => $e['paymentMethodId'] ?? null,
-                    'documento' => $e['documento'] ?? null,
+                    'documento' => $docPath,
+                    'soporte' => $e['soporte'] ?? false,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
@@ -361,5 +369,20 @@ class ApiController extends Controller
             \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
         });
         return response()->json(['status' => 'success']);
+    }
+
+    public function uploadExpenseDocument(Request $request)
+    {
+        $request->validate([
+            'documento' => 'required|file|mimes:jpg,jpeg,png,bmp,pdf,doc,docx,xls,xlsx|max:10240',
+        ]);
+
+        $file = $request->file('documento');
+        $path = $file->store('expenses-docs', 'public');
+
+        return response()->json([
+            'status' => 'success',
+            'path' => $path
+        ]);
     }
 }

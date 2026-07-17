@@ -71,10 +71,18 @@ class ExpenseResource extends Resource
                     ->relationship('paymentMethod', 'nombre')
                     ->required(),
                 
+                Forms\Components\Toggle::make('soporte')
+                    ->label('¿Tiene Soporte?')
+                    ->inline(false)
+                    ->default(false),
+                
                 Forms\Components\FileUpload::make('documento')
                     ->label('Documento (Factura / Recibo)')
                     ->directory('expenses-docs')
+                    ->disk('public')
                     ->visibility('public')
+                    ->downloadable()
+                    ->openable()
                     ->columnSpanFull(),
             ]);
     }
@@ -109,6 +117,15 @@ class ExpenseResource extends Resource
                 Tables\Columns\TextColumn::make('paymentMethod.nombre')
                     ->label('Forma de Pago')
                     ->sortable(),
+                Tables\Columns\IconColumn::make('soporte')
+                    ->label('Soporte')
+                    ->boolean(),
+                Tables\Columns\TextColumn::make('documento')
+                    ->label('Documento')
+                    ->formatStateUsing(fn ($state) => $state ? 'Ver Doc' : '-')
+                    ->url(fn ($record) => $record->documento ? \Illuminate\Support\Facades\Storage::disk('public')->url($record->documento) : null)
+                    ->openUrlInNewTab()
+                    ->color(fn ($state) => $state ? 'primary' : 'gray'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('expense_group_id')

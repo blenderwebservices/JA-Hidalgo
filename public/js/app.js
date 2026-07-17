@@ -4206,7 +4206,7 @@ function initExpensesEventListeners() {
 
   const formAddExpense = document.getElementById("form-add-expense");
   if (formAddExpense) {
-    formAddExpense.addEventListener("submit", (e) => {
+    formAddExpense.addEventListener("submit", async (e) => {
       e.preventDefault();
       
       const concept = document.getElementById("add-expense-concept").value;
@@ -4216,7 +4216,44 @@ function initExpensesEventListeners() {
       const subgroupId = parseInt(document.getElementById("add-expense-subgroup").value);
       const provider = document.getElementById("add-expense-provider").value;
       const paymentMethodId = parseInt(document.getElementById("add-expense-payment-method").value);
-      const docVal = document.getElementById("add-expense-doc").value;
+      const fileInput = document.getElementById("add-expense-doc");
+      const soporte = document.getElementById("add-expense-soporte").checked;
+      
+      let docUrl = null;
+      if (fileInput.files && fileInput.files.length > 0) {
+        const formData = new FormData();
+        formData.append("documento", fileInput.files[0]);
+        
+        try {
+          const btnSubmit = formAddExpense.querySelector('button[type="submit"]');
+          const originalText = btnSubmit.textContent;
+          btnSubmit.textContent = "Subiendo archivo...";
+          btnSubmit.disabled = true;
+
+          const response = await fetch('/api/upload-expense-document', {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            }
+          });
+          
+          btnSubmit.textContent = originalText;
+          btnSubmit.disabled = false;
+
+          const result = await response.json();
+          if (result.status === 'success') {
+            docUrl = '/storage/' + result.path;
+          } else {
+            showToast("Error", "No se pudo subir el archivo.", "error");
+            return;
+          }
+        } catch (error) {
+          console.error("Error uploading document", error);
+          showToast("Error", "Error al conectar con el servidor.", "error");
+          return;
+        }
+      }
 
       const newExpense = {
         id: 'EXP-' + String(Date.now()),
@@ -4227,7 +4264,8 @@ function initExpensesEventListeners() {
         subgroupId: subgroupId,
         proveedor: provider,
         paymentMethodId: paymentMethodId,
-        documento: docVal ? docVal : null
+        documento: docUrl,
+        soporte: soporte
       };
 
       const expenses = DB.getExpenses();
@@ -4343,16 +4381,16 @@ function downloadExpensesExcelTemplate() {
     ["   se crearán automáticamente en el sistema al aplicar la importación."],
     [""],
     ["EJEMPLO DE REGISTRO EN HOJA 'Egresos':"],
-    ["Fecha", "Monto", "Concepto", "Grupo", "Subgrupo", "Proveedor", "Forma de Pago"],
-    ["2026-06-01", 1500.00, "Servicio de Limpieza", "Mantenimiento General", "Jardinería y Limpieza", "Limpieza SA", "Transferencia Bancaria"],
-    ["2026-06-02", 450.50, "Papelería Caseta", "Administración y Operación", "Papelería e Impresiones", "Ofix SA", "Efectivo"]
+    ["Fecha", "Monto", "Concepto", "Grupo", "Subgrupo", "Proveedor", "Forma de Pago", "Soporte (SI/NO)"],
+    ["2026-06-01", 1500.00, "Servicio de Limpieza", "Mantenimiento General", "Jardinería y Limpieza", "Limpieza SA", "Transferencia Bancaria", "SI"],
+    ["2026-06-02", 450.50, "Papelería Caseta", "Administración y Operación", "Papelería e Impresiones", "Ofix SA", "Efectivo", "NO"]
   ];
 
   const wsInst = XLSX.utils.aoa_to_sheet(instructionsData);
   XLSX.utils.book_append_sheet(wb, wsInst, "Instrucciones");
 
   const headers = [
-    ["Fecha", "Monto", "Concepto", "Grupo", "Subgrupo", "Proveedor", "Forma de Pago"]
+    ["Fecha", "Monto", "Concepto", "Grupo", "Subgrupo", "Proveedor", "Forma de Pago", "Soporte (SI/NO)"]
   ];
   const wsEgresos = XLSX.utils.aoa_to_sheet(headers);
   
@@ -4363,7 +4401,8 @@ function downloadExpensesExcelTemplate() {
     { wch: 25 },
     { wch: 25 },
     { wch: 20 },
-    { wch: 20 }
+    { wch: 20 },
+    { wch: 15 }
   ];
   
   XLSX.utils.book_append_sheet(wb, wsEgresos, "Egresos");
@@ -4421,6 +4460,7 @@ function validateAndPreviewExpensesExcelData(rows) {
     const excelSubgrupo = normalized["subgrupo"] || normalized["subgroup"] || "";
     const excelProveedor = normalized["proveedor"] || normalized["provider"] || "";
     const excelForma = normalized["forma de pago"] || normalized["payment method"] || normalized["forma_pago"] || "";
+    const excelSoporte = normalized["soporte (si/no)"] || normalized["soporte"] || normalized["support"] || "";
 
     let finalFecha = "";
     if (typeof excelFecha === 'number') {
@@ -4439,6 +4479,12 @@ function validateAndPreviewExpensesExcelData(rows) {
     }
 
     const finalMonto = parseFloat(String(excelMonto).replace(/[\$,]/g, ''));
+    
+    let finalSoporte = false;
+    const strSoporte = String(excelSoporte).trim().toUpperCase();
+    if (strSoporte === 'SI' || strSoporte === 'SÍ' || strSoporte === 'TRUE' || strSoporte === '1') {
+      finalSoporte = true;
+    }
 
     const errors = [];
     if (!finalFecha) errors.push("Fecha inválida");
@@ -4459,6 +4505,10 @@ function validateAndPreviewExpensesExcelData(rows) {
       ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 6px; font-size: 0.7rem;">Válido</span>`
       : `<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 2px 6px; font-size: 0.7rem;" title="${errors.join(', ')}">Error</span>`;
 
+    const soporteBadge = finalSoporte 
+      ? `<span style="color: #10b981;"><i data-lucide="check-circle" style="width: 14px; height: 14px;"></i></span>` 
+      : `<span style="color: #6b7280;"><i data-lucide="x-circle" style="width: 14px; height: 14px;"></i></span>`;
+
     tr.innerHTML = `
       <td>${finalFecha || `<span class="text-red">Error</span>`}</td>
       <td class="text-right">${isNaN(finalMonto) ? `<span class="text-red">Error</span>` : formatCurrency(finalMonto)}</td>
@@ -4467,6 +4517,7 @@ function validateAndPreviewExpensesExcelData(rows) {
       <td>${excelSubgrupo || `<span class="text-red">Vacío</span>`}</td>
       <td>${excelProveedor || `<span class="text-red">Vacío</span>`}</td>
       <td>${excelForma || `<span class="text-red">Vacío</span>`}</td>
+      <td class="text-center">${soporteBadge}</td>
       <td>${statusBadge}</td>
     `;
     previewBody.appendChild(tr);
@@ -4479,7 +4530,8 @@ function validateAndPreviewExpensesExcelData(rows) {
         grupoNombre: String(excelGrupo).trim(),
         subgrupoNombre: String(excelSubgrupo).trim(),
         proveedor: String(excelProveedor).trim(),
-        formaNombre: String(excelForma).trim()
+        formaNombre: String(excelForma).trim(),
+        soporte: finalSoporte
       });
     } else {
       invalidCount++;
@@ -4560,7 +4612,8 @@ async function applyImportedExpensesData() {
       subgroupId: row.subgroupId,
       proveedor: row.proveedor,
       paymentMethodId: row.paymentMethodId,
-      documento: null
+      documento: null,
+      soporte: row.soporte
     };
   });
 

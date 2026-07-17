@@ -22,4 +22,5 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/api/sync-expense-subgroups', [ApiController::class, 'syncExpenseSubgroups']);
     Route::post('/api/sync-payment-methods', [ApiController::class, 'syncPaymentMethods']);
     Route::post('/api/sync-notices', [ApiController::class, 'syncNotices']);
+    Route::post('/api/upload-expense-document', [ApiController::class, 'uploadExpenseDocument']);
 });

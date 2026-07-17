@@ -1287,9 +1287,13 @@
                 <option value="">Selecciona forma</option>
               </select>
             </div>
+            <div class="form-group span-2" style="display: flex; align-items: center; gap: 10px;">
+              <input type="checkbox" id="add-expense-soporte" style="width: 20px; height: 20px;">
+              <label for="add-expense-soporte" style="margin: 0;">¿El gasto cuenta con soporte? (Independiente al archivo adjunto)</label>
+            </div>
             <div class="form-group span-2">
-              <label for="add-expense-doc">Documento de Soporte (Nombre del archivo):</label>
-              <input type="text" id="add-expense-doc" placeholder="ej. factura_123.pdf (opcional)">
+              <label for="add-expense-doc">Documento (Subir archivo opcional):</label>
+              <input type="file" id="add-expense-doc" accept=".jpg, .jpeg, .png, .bmp, .pdf, .doc, .docx, .xls, .xlsx" style="width: 100%; padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-glass); color: #fff;">
             </div>
           </div>
         </div>
@@ -1338,6 +1342,7 @@
                   <th>Subgrupo</th>
                   <th>Proveedor</th>
                   <th>Forma Pago</th>
+                  <th>Soporte</th>
                   <th>Estado</th>
                 </tr>
               </thead>

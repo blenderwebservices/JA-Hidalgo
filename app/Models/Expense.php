@@ -14,12 +14,17 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
     'expense_subgroup_id',
     'proveedor',
     'payment_method_id',
-    'documento'
+    'documento',
+    'soporte'
 ])]
 class Expense extends Model
 {
     public $incrementing = false;
     protected $keyType = 'string';
+
+    protected $casts = [
+        'soporte' => 'boolean',
+    ];
 
     public function group()
     {
