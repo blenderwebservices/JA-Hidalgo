@@ -4539,6 +4539,7 @@ function validateAndPreviewExpensesExcelData(rows) {
   });
 
   document.getElementById("expenses-import-preview-container").style.display = "block";
+  document.getElementById("expenses-import-mode-container").style.display = "block";
   document.getElementById("expenses-import-count").textContent = rows.length;
 
   const btnConfirm = document.getElementById("btn-confirm-import-expenses");
@@ -4617,10 +4618,16 @@ async function applyImportedExpensesData() {
     };
   });
 
-  const finalExpensesList = [...currentExpenses, ...newExpenses];
+  const modeRadios = document.getElementsByName("expenses_import_mode");
+  let mode = "add";
+  for (const radio of modeRadios) {
+    if (radio.checked) mode = radio.value;
+  }
+
+  const finalExpensesList = mode === "replace" ? newExpenses : [...currentExpenses, ...newExpenses];
   DB.saveExpenses(finalExpensesList);
 
-  logAuditEvent("IMPORTAR_GASTOS", "Expense", "EXCEL", `Importación de ${newExpenses.length} egresos desde Excel`);
+  logAuditEvent("IMPORTAR_GASTOS", "Expense", "EXCEL", `Importación de ${newExpenses.length} egresos desde Excel (Modo: ${mode})`);
 
   showToast("Gastos Importados", `Se importaron con éxito ${newExpenses.length} egresos.`, "success");
   
@@ -4634,6 +4641,8 @@ function resetExpensesImportState() {
   appState.expensesExcelImportData = null;
   document.getElementById("expenses-excel-input").value = "";
   document.getElementById("expenses-import-preview-container").style.display = "none";
+  document.getElementById("expenses-import-mode-container").style.display = "none";
+  document.querySelector('input[name="expenses_import_mode"][value="add"]').checked = true;
   document.querySelector("#table-expenses-import-preview tbody").innerHTML = "";
   
   const btnConfirm = document.getElementById("btn-confirm-import-expenses");
@@ -4784,4 +4793,61 @@ window.deletePaymentMethod = function() {
   const methods = DB.getPaymentMethods().filter(m => m.id !== id);
   DB.savePaymentMethods(methods);
   populateAddExpenseModalSelects();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btnTemplateMain = document.getElementById("btn-download-expenses-template-main");
+  if (btnTemplateMain) {
+    btnTemplateMain.addEventListener("click", downloadExpensesExcelTemplate);
+  }
+
+  const btnExportAll = document.getElementById("btn-export-all-expenses");
+  if (btnExportAll) {
+    btnExportAll.addEventListener("click", exportAllExpensesExcel);
+  }
+});
+
+function exportAllExpensesExcel() {
+  const expenses = DB.getExpenses();
+  const groups = DB.getExpenseGroups();
+  const subgroups = DB.getExpenseSubgroups();
+  const paymentMethods = DB.getPaymentMethods();
+
+  const getGroupName = (id) => groups.find(g => g.id === id)?.nombre || '';
+  const getSubgroupName = (id) => subgroups.find(s => s.id === id)?.nombre || '';
+  const getMethodName = (id) => paymentMethods.find(p => p.id === id)?.nombre || '';
+
+  const wb = XLSX.utils.book_new();
+  const headers = ["ID", "Fecha", "Monto", "Concepto", "Grupo", "Subgrupo", "Proveedor", "Forma de Pago", "Soporte (SI/NO)", "Documento"];
+  
+  const data = expenses.map(e => [
+    e.id,
+    e.fecha,
+    e.monto,
+    e.concepto,
+    getGroupName(e.groupId),
+    getSubgroupName(e.subgroupId),
+    e.proveedor,
+    getMethodName(e.paymentMethodId),
+    e.soporte ? "SI" : "NO",
+    e.documento || ""
+  ]);
+  
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  
+  ws['!cols'] = [
+    { wch: 15 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 35 },
+    { wch: 25 },
+    { wch: 25 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 15 },
+    { wch: 40 }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, "Gastos");
+  XLSX.writeFile(wb, `Gastos_JA_Hidalgo_${new Date().toISOString().split("T")[0]}.xlsx`);
 }

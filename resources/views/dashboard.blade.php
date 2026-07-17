@@ -536,6 +536,8 @@
                   <option value="">Todas las formas de pago</option>
                   <!-- Dynamically filled -->
                 </select>
+                <button class="btn btn-sm btn-secondary" id="btn-download-expenses-template-main"><i data-lucide="download" style="width:16px;height:16px;"></i> Plantilla Excel</button>
+                <button class="btn btn-sm btn-primary" id="btn-export-all-expenses"><i data-lucide="file-spreadsheet" style="width:16px;height:16px;"></i> Exportar Gastos</button>
               </div>
             </div>
 
@@ -1339,6 +1341,20 @@
           <p style="margin: 0 0 4px 0; font-weight: 600; color: #fff;">Arrastra tu archivo aquí o haz clic para explorar</p>
           <span style="font-size: 0.7rem; color: rgba(255,255,255,0.4);">Formatos aceptados: .xlsx, .xls</span>
           <input type="file" id="expenses-excel-input" accept=".xlsx, .xls" style="display: none;">
+        </div>
+
+        <div id="expenses-import-mode-container" style="display: none; margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border-glass);">
+          <h4 style="margin: 0 0 10px 0; font-size: 0.95rem;">Modo de Importación</h4>
+          <div style="display: flex; gap: 20px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="radio" name="expenses_import_mode" value="add" checked>
+              <span>Añadir a los existentes (Aditiva)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="radio" name="expenses_import_mode" value="replace">
+              <span>Reemplazar todo (Elimina los actuales)</span>
+            </label>
+          </div>
         </div>
 
         <div id="expenses-import-preview-container" style="display: none; margin-top: 15px;">
